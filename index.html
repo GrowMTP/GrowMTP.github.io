@@ -1,0 +1,3537 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>GrowMTP: Can RL Grow Its Own Draft Head?</title>
+    <meta
+      name="description"
+      content="GrowMTP trains multi-token prediction heads from scratch inside reinforcement learning. Explore train–inference consistency, online learning dynamics, and 2.13× rollout acceleration."
+    />
+    <meta
+      property="og:title"
+      content="GrowMTP: Can RL Grow Its Own Draft Head?"
+    />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:description"
+      content="A draft head can grow within the RL run it accelerates. Interactive explanations, implementation details, and experimental results."
+    />
+    <meta
+      name="citation_title"
+      content="GrowMTP: Can RL Grow Its Own Draft Head?"
+    />
+    <meta name="citation_author" content="Minghua He" />
+    <meta name="citation_author" content="Lingzhe Zhang" />
+    <meta name="citation_author" content="Yuan Liu" />
+    <meta name="citation_author" content="Xiao Zhou" />
+    <meta name="citation_author" content="Aiwei Liu" />
+    <meta name="citation_publication_date" content="2026" />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="preload"
+      href="assets/fonts/dm-sans-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="assets/fonts/noto-sans.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="styles.css?v=rq1-3" />
+    <script src="assets/rq1-data.js?v=rq1-3" defer></script>
+    <script src="app.js?v=side-toc-1" defer></script>
+    <link rel="stylesheet" href="assets/rollout-teacher.css?v=rq1-3" />
+    <script src="assets/rollout-teacher.js?v=rq1-3" defer></script>
+    <link rel="stylesheet" href="assets/rollout-reconstruction.css?v=component-fix-3" />
+    <script src="assets/rollout-reconstruction.js?v=rq1-3" defer></script>
+    <link rel="stylesheet" href="assets/modular-layout.css?v=component-fix-3" />
+    <link rel="stylesheet" href="assets/idea-layout.css?v=rq1-3" />
+    <link rel="stylesheet" href="assets/challenge-layout.css?v=component-fix-3" />
+    <link rel="stylesheet" href="assets/method-layout.css?v=method-full-panels-4" />
+    <link rel="stylesheet" href="assets/rq1-layout.css?v=left-toc-2" />
+    <script src="assets/modular-layout.js?v=rq1-3" defer></script>
+  </head>
+  <body class="modular-page">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="reading-progress" aria-hidden="true"></div>
+    <header class="site-header">
+      <div class="nav-inner wide">
+        <a class="brand" href="#"
+          ><span class="lab-badge">WeChat AI</span><span>GrowMTP</span></a
+        >
+        <nav class="main-nav" aria-label="Main navigation">
+<a href="#idea-cost">Motivation</a>
+<a href="#idea-observations">Observation</a>
+<a href="#mismatch">Challenge</a>
+<a href="#method">Method</a>
+<a href="#growth">Experiment</a>
+<a href="#discussion">Discussion</a>
+<a href="#conclusion">Conclusion</a>
+</nav>
+        <a
+          class="nav-paper"
+          href="assets/GrowMTP.pdf" target="_blank" rel="noopener"
+          >Paper <span aria-hidden="true">↗</span></a
+        ><button
+          class="menu-toggle"
+          aria-label="Open navigation"
+          aria-expanded="false"
+          aria-controls="mobile-nav"
+        >
+          <span></span><span></span>
+        </button>
+      </div>
+      <nav
+        id="mobile-nav"
+        class="mobile-nav"
+        aria-label="Mobile navigation"
+        hidden
+      >
+<a href="#idea-cost">Motivation</a>
+<a href="#idea-observations">Observation</a>
+<a href="#mismatch">Challenge</a>
+<a href="#method">Method</a>
+<a href="#growth">Experiment</a>
+<a href="#discussion">Discussion</a>
+<a href="#conclusion">Conclusion</a>
+</nav>
+    </header>
+
+    <button class="side-toc-toggle" type="button" aria-controls="side-toc" aria-expanded="false">Contents</button>
+    <nav id="side-toc" class="side-toc" aria-label="Page contents">
+      <p class="side-toc-title">ON THIS PAGE</p>
+      <a href="#idea-cost">Motivation</a>
+<a href="#idea-observations">Observation</a>
+<a href="#mismatch">Challenge</a>
+<a href="#method">Method</a>
+<a href="#growth">Experiment</a>
+<a href="#growth" class="side-toc-child">From Scratch</a>
+<a href="#strategy" class="side-toc-child">Training Strategy</a>
+<a href="#depth" class="side-toc-child">Drafting Depth</a>
+<a href="#ablations" class="side-toc-child">Component Ablations</a>
+<a href="#discussion">Discussion</a>
+<a href="#conclusion">Conclusion</a>
+    </nav>
+    <main id="main">
+      <section class="paper-hero wide" aria-labelledby="paper-title">
+        <div class="hero-grid">
+          <div class="hero-intro">
+            
+            <h1 id="paper-title">
+              <span class="gradient-text">GrowMTP</span>: Can RL Grow<br
+                class="title-break"
+              />
+              Its Own Draft Head?
+            </h1>
+            <div class="authors">
+              <span>Minghua He<sup>1,2,*</sup></span><span>Lingzhe Zhang<sup>2</sup></span
+              ><span>Yuan Liu<sup>1</sup></span
+              ><span>Xiao Zhou<sup>1</sup></span
+              ><span>Aiwei Liu<sup>1,†</sup></span>
+            </div>
+            <p class="affiliations">
+              <span><sup>1</sup> WeChat AI, Tencent</span
+              ><span><sup>2</sup> Peking University</span>
+            </p>
+            <p class="author-notes">
+              * Work done during an internship at WeChat AI.
+              <span>† Corresponding author.</span>
+            </p>
+            <div class="resource-links">
+              <a class="resource primary" href="assets/GrowMTP.pdf" target="_blank" rel="noopener" aria-label="Paper (PDF)"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2h7l4 4v12H5zM12 2v5h4M8 11h5M8 14h5"></path></svg>Paper</a>
+              <a class="resource" href="https://github.com/hemh02/GrowMTP" target="_blank" rel="noopener" aria-label="Code (GitHub repository)"><svg viewBox="0 0 24 24" aria-hidden="true" style="fill:currentColor;stroke:none"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.23c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.6-2.8 5.63-5.48 5.93.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12 12 0 0 0 12 .5z"></path></svg>Code</a>
+            </div>
+          </div>
+          <div class="hero-summary-block">
+            <p class="hero-tldr">
+              <strong>An RL run can train the draft head it needs.</strong
+              >GrowMTP turns rollout verification into online supervision,
+              growing a draft head from scratch while accelerating the same
+              training run.
+            </p>
+            <figure class="hero-evidence" aria-labelledby="teaser-caption">
+              <div class="hero-results">
+                <div>
+                  <strong>1.00 <span>→</span> 2.91</strong
+                  ><span>Acceptance length τ</span>
+                </div>
+                <div>
+                  <strong>2.13<span>×</span></strong
+                  ><span>Rollout speedup</span>
+                </div>
+                <div>
+                  <strong>1.60<span>×</span></strong
+                  ><span>End-to-end speedup</span>
+                </div>
+                <div>
+                  <strong>0<span> GPU·h</span></strong
+                  ><span>Offline head training</span>
+                </div>
+              </div>
+              <figcaption id="teaser-caption">
+                Qwen3-4B · Math reasoning · 500 RL steps · Head-update cost
+                included. τ is the final-10-step mean; speedups use whole-run
+                mean times.
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+        <details class="paper-abstract">
+          <summary>Abstract</summary>
+          <div id="idea-abstract" class="paper-abstract-content">
+            <p>
+              Reinforcement learning (RL) post-training drives the frontier capabilities of large language models, with its wall-clock dominated by autoregressive rollout generation.
+              Speculative decoding is an established remedy for this bottleneck, but existing draft heads must be pretrained or warmed up before RL, introducing substantial training cost outside the RL run to be accelerated.
+              We observe that RL training itself provides both conditions required for online draft-head training: its rollout distribution is far narrower than that of pretraining, and its verification step continuously produces supervision signals aligned with this distribution.
+              Building on these observations, we propose <em>GrowMTP</em>, which uses this supervision to train a draft head from scratch entirely within the RL loop, with all head updates detached from the policy backbone.
+              On Qwen3-4B (no draft head), MiMo-7B-SFT (weak head), and Qwen3.5-4B-Base (strong head), <em>GrowMTP</em> achieves rollout speedups of 2.13×, 1.93×, and 1.36×, and end-to-end speedups of 1.60×, 1.41×, and 1.20×, respectively.
+              <em>GrowMTP</em> therefore serves existing RL training frameworks as a modular component, particularly offering a from-scratch acceleration path for models without pretrained draft heads.
+            </p>
+          </div>
+        </details>
+        <div class="hero-workflow">
+          
+          <figure class="teaser" aria-label="The GrowMTP training loop">
+            <div class="teaser-heading">
+              <span class="teaser-label">THE GROWMTP LOOP</span
+              ><span class="teaser-note"
+                >Inside the existing RL training step</span
+              >
+            </div>
+            <div class="teaser-flow">
+              <div class="teaser-node">
+                <span class="node-index blue">01</span>
+                <div>
+                  <h3>Draft &amp; verify</h3>
+                  <p>The head proposes. The policy checks.</p>
+                </div>
+                <div class="teaser-tokens">
+                  <span class="blue-token">h<sub>θ</sub></span
+                  ><i>→</i><span>d₁ <b>✓</b></span
+                  ><span>d₂ <b>✓</b></span
+                  ><span class="rejected-token">d₃ <b>×</b></span
+                  ><span class="discarded-token">d₄</span>
+                </div>
+              </div>
+              <span class="flow-arrow" aria-hidden="true">→</span>
+              <div class="teaser-node">
+                <span class="node-index teal">02</span>
+                <div>
+                  <h3>Reuse the supervision</h3>
+                  <p>Keep the path that produced each signal.</p>
+                </div>
+                <div class="record-chips">
+                  <span>Draft tokens</span><span>Target logits</span
+                  ><span>Cycle boundaries</span>
+                </div>
+              </div>
+              <span class="flow-arrow" aria-hidden="true">→</span>
+              <div class="teaser-node">
+                <span class="node-index green">03</span>
+                <div>
+                  <h3>Grow the draft head</h3>
+                  <p>Reconstruct, learn, and draft again.</p>
+                </div>
+                <div class="teaser-update">
+                  <span class="mini-loss">DCA + VGM</span><i>→</i
+                  ><span class="head-chip">Update φ</span
+                  ><span class="detach-note">θ detached</span>
+                </div>
+              </div>
+            </div>
+            <div class="feedback-line">
+              <span>↖</span>
+              <div></div>
+              <p>A better head accelerates subsequent rollouts</p>
+              <div></div>
+              <span>↵</span>
+            </div>
+          </figure>
+        </div>
+      </section>
+
+      <div id="idea" class="idea-story">
+        <section
+          id="idea-cost"
+          class="research-section idea-section"
+          aria-labelledby="idea-title"
+        >
+          <div class="wide idea-container">
+            <div class="section-intro idea-intro">
+              <div class="section-label"><span>01</span> MOTIVATION</div>
+              <h2 id="idea-title">Why train the draft head within RL?</h2>
+              <p class="section-summary">
+                Speculative decoding accelerates rollouts, but drafting capability
+                usually has to be trained before RL begins.
+              </p>
+            </div>
+            <div class="idea-cost-block">
+              <div class="idea-cost-frame">
+                <table class="idea-cost-table">
+                  <caption class="sr-only">
+                    Existing draft-head training routes require preparation
+                    before reinforcement learning can benefit.
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Existing approach</th>
+                      <th scope="col">Where the head comes from</th>
+                      <th scope="col">Preparation before RL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row">
+                        <span class="idea-approach">Native MTP</span
+                        ><span class="idea-model">DeepSeek-V3</span>
+                      </th>
+                      <td>
+                        <span class="idea-training-route"
+                          >Joint backbone<br />pretraining</span
+                        >
+                      </td>
+                      <td>
+                        <span class="idea-cost"
+                          ><strong>14.8T</strong
+                          ><span>pretraining tokens<sup>†</sup></span></span
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <th scope="row">
+                        <span class="idea-approach">EAGLE-style head</span
+                        ><span class="idea-model">70B target model</span>
+                      </th>
+                      <td>
+                        <span class="idea-training-route"
+                          >Dedicated offline<br />head training</span
+                        >
+                      </td>
+                      <td>
+                        <span class="idea-cost"
+                          ><strong>~5,000</strong><span>GPU·h</span></span
+                        >
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="idea-prerequisite">
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <rect x="5" y="8" width="10" height="9" rx="2"></rect>
+                    <path d="M7 8V5a3 3 0 0 1 6 0v3"></path>
+                  </svg>
+                  <p>Drafting capability enters RL as a prerequisite.</p>
+                </div>
+              </div>
+              <p class="idea-cost-note">
+                † 14.8T is the full backbone pretraining corpus, not the
+                incremental cost of the MTP head. The two examples use
+                different measures.
+                
+              </p>
+            </div>
+            <div class="idea-question-block">
+              <span class="idea-question-eyebrow">THE QUESTION</span>
+              <h3>Can RL <span>grow the draft head</span> it needs?</h3>
+              <svg
+                class="idea-down-arrow"
+                viewBox="0 0 24 30"
+                aria-hidden="true"
+              >
+                <path d="M12 2v24m-7-7 7 7 7-7"></path>
+              </svg>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="idea-observations"
+          class="research-section idea-section"
+          aria-labelledby="observations-title"
+        >
+          <div class="wide idea-container">
+            <div class="section-intro idea-intro">
+              <div class="section-label"><span>02</span> OBSERVATION</div>
+              <h2 id="observations-title">RL already provides both ingredients.</h2>
+              <p class="section-summary">
+                A focused rollout distribution and valid verification supervision.
+              </p>
+            </div>
+            <div class="idea-observation-content">
+              <div class="idea-observations">
+                <article
+                  class="idea-observation"
+                  aria-labelledby="domain-observation-title"
+                >
+                  <div class="idea-observation-heading">
+                    <span class="idea-observation-index">01</span>
+                    <h3 id="domain-observation-title">
+                      RL only needs a<br />domain-specific head.
+                    </h3>
+                  </div>
+                  <figure class="idea-domain-figure">
+                    <svg
+                      class="idea-domain-svg"
+                      viewBox="0 0 500 300"
+                      role="img"
+                      aria-labelledby="idea-domain-svg-title idea-domain-svg-desc"
+                    >
+                      <title id="idea-domain-svg-title">
+                        A broad pretraining distribution and a focused Math
+                        reasoning RL run
+                      </title>
+                      <desc id="idea-domain-svg-desc">
+                        Pretraining spans Code, Knowledge, Math, Dialogue,
+                        and Writing. An arrow selects the Math domain for
+                        this example RL run. This is a conceptual
+                        distribution sketch, without measured coordinates.
+                      </desc>
+                      <defs>
+                        <marker
+                          id="idea-domain-arrow"
+                          markerWidth="8"
+                          markerHeight="8"
+                          refX="6"
+                          refY="4"
+                          orient="auto"
+                        >
+                          <path
+                            d="M1 1l5 3-5 3"
+                            fill="none"
+                            stroke="#6b9d82"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          ></path>
+                        </marker>
+                      </defs>
+                      <text
+                        class="idea-map-title"
+                        x="145"
+                        y="24"
+                        text-anchor="middle"
+                      >
+                        Broad pretraining
+                      </text>
+                      <text
+                        class="idea-map-title"
+                        x="406"
+                        y="24"
+                        text-anchor="middle"
+                      >
+                        This RL run
+                      </text>
+                      <rect
+                        x="11"
+                        y="43"
+                        width="268"
+                        height="239"
+                        rx="13"
+                        fill="#f6f8fc"
+                        stroke="#dce4ed"
+                      ></rect>
+                      <g fill="#aac3e5">
+                        <circle cx="51" cy="84" r="4"></circle>
+                        <circle cx="77" cy="79" r="3"></circle>
+                        <circle cx="98" cy="96" r="4"></circle>
+                        <circle cx="42" cy="107" r="3"></circle>
+                        <circle cx="85" cy="117" r="3"></circle>
+                        <circle cx="62" cy="103" r="2.5"></circle>
+                      </g>
+                      <text
+                        class="idea-map-domain"
+                        x="72"
+                        y="102"
+                        text-anchor="middle"
+                        fill="#496b96"
+                      >
+                        Code
+                      </text>
+                      <g fill="#b7c2ce">
+                        <circle cx="184" cy="70" r="3.5"></circle>
+                        <circle cx="219" cy="76" r="3"></circle>
+                        <circle cx="241" cy="94" r="3.5"></circle>
+                        <circle cx="207" cy="113" r="3"></circle>
+                        <circle cx="173" cy="106" r="2.5"></circle>
+                      </g>
+                      <text
+                        class="idea-map-domain"
+                        x="209"
+                        y="96"
+                        text-anchor="middle"
+                        fill="#667385"
+                      >
+                        Knowledge
+                      </text>
+                      <g fill="#d9c8a6">
+                        <circle cx="40" cy="216" r="3"></circle>
+                        <circle cx="66" cy="207" r="4"></circle>
+                        <circle cx="97" cy="220" r="3"></circle>
+                        <circle cx="83" cy="246" r="3.5"></circle>
+                        <circle cx="50" cy="250" r="2.5"></circle>
+                      </g>
+                      <text
+                        class="idea-map-domain"
+                        x="70"
+                        y="236"
+                        text-anchor="middle"
+                        fill="#857253"
+                      >
+                        Dialogue
+                      </text>
+                      <g fill="#c9bedc">
+                        <circle cx="180" cy="214" r="3"></circle>
+                        <circle cx="215" cy="205" r="3.5"></circle>
+                        <circle cx="249" cy="224" r="3"></circle>
+                        <circle cx="230" cy="247" r="4"></circle>
+                        <circle cx="189" cy="250" r="3"></circle>
+                      </g>
+                      <text
+                        class="idea-map-domain"
+                        x="215"
+                        y="236"
+                        text-anchor="middle"
+                        fill="#7b688d"
+                      >
+                        Writing
+                      </text>
+                      <ellipse
+                        cx="153"
+                        cy="160"
+                        rx="48"
+                        ry="31"
+                        fill="#e5f5eb"
+                        stroke="#63a37d"
+                        stroke-width="1.5"
+                      ></ellipse>
+                      <g fill="#8ab79a">
+                        <circle cx="122" cy="149" r="3"></circle>
+                        <circle cx="176" cy="140" r="3"></circle>
+                        <circle cx="187" cy="172" r="2.5"></circle>
+                        <circle cx="138" cy="181" r="3"></circle>
+                      </g>
+                      <text
+                        class="idea-map-focus"
+                        x="153"
+                        y="166"
+                        text-anchor="middle"
+                      >
+                        Math
+                      </text>
+                      <path
+                        d="M203 160H330"
+                        stroke="#76a68a"
+                        stroke-width="1.5"
+                        fill="none"
+                        marker-end="url(#idea-domain-arrow)"
+                      ></path>
+                      <text
+                        class="idea-map-edge"
+                        x="304"
+                        y="147"
+                        text-anchor="middle"
+                      >
+                        focus
+                      </text>
+                      <circle
+                        cx="406"
+                        cy="160"
+                        r="64"
+                        fill="#f0f9f3"
+                        stroke="#84b499"
+                        stroke-width="1.4"
+                        stroke-dasharray="4 5"
+                      ></circle>
+                      <g fill="#74ad8a">
+                        <circle cx="370" cy="133" r="4"></circle>
+                        <circle cx="399" cy="112" r="3"></circle>
+                        <circle cx="426" cy="122" r="4"></circle>
+                        <circle cx="449" cy="150" r="3"></circle>
+                        <circle cx="438" cy="185" r="4"></circle>
+                        <circle cx="408" cy="204" r="3"></circle>
+                        <circle cx="379" cy="191" r="3.5"></circle>
+                        <circle cx="362" cy="166" r="3"></circle>
+                        <circle cx="388" cy="135" r="2.5"></circle>
+                        <circle cx="421" cy="182" r="2.5"></circle>
+                      </g>
+                      <text
+                        class="idea-map-focus"
+                        x="406"
+                        y="166"
+                        text-anchor="middle"
+                      >
+                        Math
+                      </text>
+                      <text
+                        class="idea-map-domain"
+                        x="406"
+                        y="253"
+                        text-anchor="middle"
+                        fill="#54775f"
+                      >
+                        Task-specific rollouts
+                      </text>
+                    </svg>
+                    <figcaption>
+                      Schematic: a Math reasoning RL run.
+                    </figcaption>
+                  </figure>
+                  <p class="idea-observation-takeaway">
+                    Fit the <strong>current rollout distribution.</strong>
+                  </p>
+                </article>
+
+                <article
+                  class="idea-observation"
+                  aria-labelledby="signal-observation-title"
+                >
+                  <div class="idea-observation-heading">
+                    <span class="idea-observation-index">02</span>
+                    <h3 id="signal-observation-title">
+                      RL already produces<br />valid supervision.
+                    </h3>
+                  </div>
+                  <div
+                    class="idea-signal-figure"
+                    role="group"
+                    aria-label="Verification provides supervision even for a randomly initialized head"
+                  >
+                    <div class="idea-signal-example">
+                      <div class="idea-signal-heading">
+                        <strong>Random head</strong
+                        ><span>First draft rejected</span>
+                      </div>
+                      <div class="idea-signal-grid">
+                        <span class="idea-row-label">Draft</span
+                        ><span class="idea-draft first-rejected"
+                          >d₁ <b>×</b></span
+                        ><span class="idea-draft discarded">d₂</span
+                        ><span class="idea-draft discarded">d₃</span
+                        ><span class="idea-draft discarded">d₄</span>
+                        <span class="idea-row-label">Valid<br />signal</span
+                        ><span class="idea-valid-signal at-rejection"
+                          >p₁ <b>✓</b></span
+                        ><span
+                          class="idea-no-signal"
+                          aria-label="Position 2 is beyond the executed prefix"
+                          >—</span
+                        ><span
+                          class="idea-no-signal"
+                          aria-label="Position 3 is beyond the executed prefix"
+                          >—</span
+                        ><span
+                          class="idea-no-signal"
+                          aria-label="Position 4 is beyond the executed prefix"
+                          >—</span
+                        >
+                      </div>
+                    </div>
+                    <div class="idea-signal-example">
+                      <div class="idea-signal-heading">
+                        <strong>Improving head</strong
+                        ><span>Longer accepted prefix</span>
+                      </div>
+                      <div class="idea-signal-grid">
+                        <span class="idea-row-label">Draft</span
+                        ><span class="idea-draft accepted">d₁ <b>✓</b></span
+                        ><span class="idea-draft accepted">d₂ <b>✓</b></span
+                        ><span class="idea-draft first-rejected"
+                          >d₃ <b>×</b></span
+                        ><span class="idea-draft discarded">d₄</span>
+                        <span class="idea-row-label">Valid<br />signal</span
+                        ><span class="idea-valid-signal">p₁ <b>✓</b></span
+                        ><span class="idea-valid-signal">p₂ <b>✓</b></span
+                        ><span class="idea-valid-signal at-rejection"
+                          >p₃ <b>✓</b></span
+                        ><span
+                          class="idea-no-signal"
+                          aria-label="Position 4 is beyond the executed prefix"
+                          >—</span
+                        >
+                      </div>
+                    </div>
+                    <p class="idea-signal-caption">
+                      <span>×</span> The first rejected position still
+                      provides a valid signal.
+                    </p>
+                  </div>
+                  <p class="idea-observation-takeaway">
+                    Valid supervision <strong>from the first cycle.</strong>
+                  </p>
+                </article>
+              </div>
+            </div>
+            <div class="idea-conclusion">
+              <div class="idea-ingredients">
+                <span>A focused rollout distribution</span
+                ><span>Valid verification supervision</span>
+              </div>
+              <svg
+                class="idea-convergence"
+                viewBox="0 0 560 42"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M140 0v10q0 6 8 6h124q8 0 8 8v14M420 0v10q0 6-8 6H288q-8 0-8 8M274 32l6 6 6-6"
+                ></path>
+              </svg>
+              <p class="idea-conclusion-title">
+                Grow the draft head <strong>within RL.</strong>
+              </p>
+              <p class="idea-conclusion-copy">
+                RL already provides both the distribution to fit and the
+                supervision to learn from.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section
+        id="mismatch"
+        class="research-section challenge-section"
+        aria-labelledby="mismatch-title"
+      >
+        <div class="wide">
+          <div class="section-intro challenge-intro">
+            <div class="section-label"><span>03</span> CHALLENGE</div>
+            <h2 id="mismatch-title">What makes online draft-head training challenging?</h2>
+            <p class="section-summary">
+              RL provides the supervision. Using it for multi-step drafting
+              requires resolving three challenges.
+            </p>
+          </div>
+          <div class="challenge-layout">
+            <ol class="challenge-list">
+              <li class="challenge-item">
+                <div class="challenge-heading">
+                  <span class="challenge-index" aria-hidden="true">01</span>
+                  <h3>State consistency</h3>
+                </div>
+                <p>
+                  Verification signals belong to specific draft states.
+                  Training on the final response can change cycle boundaries,
+                  recurrent states, and KV context.
+                </p>
+              </li>
+              <li class="challenge-item">
+                <div class="challenge-heading">
+                  <span class="challenge-index" aria-hidden="true">02</span>
+                  <h3>Depth dependence</h3>
+                </div>
+                <p>
+                  A deeper draft contributes only if all earlier drafts are
+                  accepted. Learning at different depths is therefore coupled.
+                </p>
+                <div class="challenge-chain" role="img"
+                  aria-label="For draft 3 to contribute, drafts 1 and 2 must first be accepted.">
+                  <span class="challenge-chain-token" aria-hidden="true">d₁ <b>✓</b></span>
+                  <span class="challenge-chain-arrow" aria-hidden="true">→</span>
+                  <span class="challenge-chain-token" aria-hidden="true">d₂ <b>✓</b></span>
+                  <span class="challenge-chain-arrow" aria-hidden="true">→</span>
+                  <span class="challenge-chain-end" aria-hidden="true"><b>d₃</b><span>can contribute</span></span>
+                </div>
+              </li>
+              <li class="challenge-item">
+                <div class="challenge-heading">
+                  <span class="challenge-index" aria-hidden="true">03</span>
+                  <h3>Supervision validity</h3>
+                </div>
+                <p>
+                  Verification also produces signals after the first rejection,
+                  where later drafts depend on a token the target discarded.
+                </p>
+                <div class="challenge-prefix" role="img"
+                  aria-label="Example: draft 1 is accepted, draft 2 is rejected, and draft 3 is discarded. Verification distributions p1, p2, and p3 all exist, but p3 conditions on the rejected draft 2.">
+                  <span class="challenge-row-label" aria-hidden="true">Draft</span>
+                  <span class="challenge-token accepted" aria-hidden="true">d₁ <b>✓</b></span>
+                  <span class="challenge-token rejected" aria-hidden="true">d₂ <b>×</b></span>
+                  <span class="challenge-suffix" aria-hidden="true"><span class="challenge-token discarded">d₃</span></span>
+                  <span class="challenge-row-label" aria-hidden="true">Signal</span>
+                  <span class="challenge-signal" aria-hidden="true">p₁</span>
+                  <span class="challenge-signal" aria-hidden="true">p₂</span>
+                  <span class="challenge-suffix" aria-hidden="true"><span class="challenge-signal">p₃</span></span>
+                </div>
+                <p class="challenge-diagram-note">
+                  p₂ still supervises a valid prefix; p₃ conditions on rejected d₂.
+                </p>
+              </li>
+            </ol>
+            <div id="mismatch-teacher" class="challenge-demo" role="group"
+              aria-labelledby="challenge-demo-title">
+              <figure
+                id="mismatch-demo"
+                class="rt-figure"
+                aria-labelledby="rt-figure-caption"
+                data-playing="false"
+                data-phase="rollout"
+              >
+                <p id="challenge-demo-title" class="challenge-demo-label">
+                  <span>01</span> State consistency · Rollout vs. teacher forcing
+                </p>
+                <svg
+                  id="rt-canvas"
+                  class="rt-canvas"
+                  viewBox="0 0 900 600"
+                  role="img"
+                  aria-labelledby="rt-title rt-description"
+                >
+                  <title id="rt-title">
+                    Rollout above, teacher forcing below, connected by the
+                    same committed sequence
+                  </title>
+                  <desc id="rt-description">
+                    Two rollout cycles produce d tilde 11, d21 and d tilde 22.
+                    Teacher forcing reads these committed tokens and
+                    recomputes its own hidden states and logits. It writes KV
+                    for each input token. Entries for d tilde 11 and d21 are
+                    red because their recursively computed features differ
+                    from those used at the corresponding rollout positions.
+                    The first hidden output matches rollout. When teacher
+                    forcing carries it across a cycle boundary instead of
+                    restarting from the target's feature, that hidden input,
+                    the feedback path, and subsequent hidden outputs are also
+                    marked red. Tokens keep their original colors.
+                  </desc>
+                  <defs>
+                    <marker
+                      id="rt-arrow"
+                      viewBox="0 0 10 10"
+                      refX="8"
+                      refY="5"
+                      markerWidth="6"
+                      markerHeight="6"
+                      orient="auto"
+                    >
+                      <path
+                        d="M2 1l6 4-6 4"
+                        fill="none"
+                        stroke="#9fb3bd"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      ></path>
+                    </marker>
+                  </defs>
+                  <text
+                    id="rt-roll-title"
+                    class="rt-section-title"
+                    x="28"
+                    y="26"
+                  >
+                    Rollout
+                  </text>
+                  <text
+                    id="rt-roll-step"
+                    class="rt-stage-label"
+                    x="872"
+                    y="26"
+                    text-anchor="end"
+                  >
+                    Cycle 1 · draft 1 / 3
+                  </text>
+                  <g class="rt-paths" aria-hidden="true">
+                    <path id="rt-roll-in" class="rt-wire"></path>
+                    <path id="rt-roll-out" class="rt-wire"></path>
+                    <path
+                      id="rt-roll-loop"
+                      class="rt-wire rt-green-wire"
+                    ></path>
+                    <path id="rt-batch" class="rt-wire rt-blue-wire"></path>
+                    <path id="rt-commit-1" class="rt-wire"></path>
+                    <path id="rt-commit-2" class="rt-wire"></path>
+                    <path id="rt-commit-3" class="rt-wire"></path>
+                    <path id="rt-tf-in" class="rt-wire"></path>
+                    <path id="rt-tf-out" class="rt-wire"></path>
+                    <path
+                      id="rt-tf-loop"
+                      class="rt-wire rt-green-wire"
+                    ></path>
+                    <path id="rt-source" class="rt-wire rt-amber-wire"></path>
+                    <path id="rt-kv-write" class="rt-wire rt-red-wire"></path>
+                    <path id="rt-store" class="rt-wire"></path>
+                  </g>
+                  <g
+                    id="rt-roll-input"
+                    class="rt-bundle"
+                    transform="translate(125 116)"
+                  >
+                    <rect
+                      class="rt-hidden-cell"
+                      x="-70"
+                      y="-24"
+                      width="67"
+                      height="48"
+                      rx="7"
+                    ></rect>
+                    <rect
+                      class="rt-token-cell"
+                      x="3"
+                      y="-24"
+                      width="67"
+                      height="48"
+                      rx="7"
+                    ></rect>
+                    <text
+                      class="rt-value"
+                      data-field="h"
+                      text-anchor="middle"
+                      x="-36"
+                      y="8"
+                    >
+                      h₀
+                    </text>
+                    <text
+                      class="rt-value"
+                      data-field="d"
+                      text-anchor="middle"
+                      x="36"
+                      y="8"
+                    >
+                      yₜ
+                    </text>
+                    <text
+                      class="rt-field-caption"
+                      x="-36"
+                      y="40"
+                      text-anchor="middle"
+                    >
+                      hidden
+                    </text>
+                    <text
+                      class="rt-field-caption"
+                      x="36"
+                      y="40"
+                      text-anchor="middle"
+                    >
+                      token
+                    </text>
+                  </g>
+                  <g
+                    id="rt-roll-head"
+                    class="rt-module"
+                    transform="translate(360 116)"
+                  >
+                    <rect
+                      x="-55"
+                      y="-39"
+                      width="110"
+                      height="78"
+                      rx="10"
+                    ></rect>
+                    <text class="rt-module-title" y="-3" text-anchor="middle">
+                      Drafter
+                    </text>
+                    <text class="rt-phi" y="26" text-anchor="middle">φ</text>
+                  </g>
+                  <g
+                    id="rt-roll-output"
+                    class="rt-bundle"
+                    transform="translate(600 116)"
+                  >
+                    <rect
+                      class="rt-hidden-cell"
+                      x="-70"
+                      y="-24"
+                      width="67"
+                      height="48"
+                      rx="7"
+                    ></rect>
+                    <rect
+                      class="rt-token-cell"
+                      x="3"
+                      y="-24"
+                      width="67"
+                      height="48"
+                      rx="7"
+                    ></rect>
+                    <text
+                      class="rt-value"
+                      data-field="h"
+                      text-anchor="middle"
+                      x="-36"
+                      y="8"
+                    >
+                      —
+                    </text>
+                    <text
+                      class="rt-value"
+                      data-field="d"
+                      text-anchor="middle"
+                      x="36"
+                      y="8"
+                    >
+                      —
+                    </text>
+                    <text
+                      class="rt-field-caption"
+                      x="-36"
+                      y="40"
+                      text-anchor="middle"
+                    >
+                      hidden
+                    </text>
+                    <text
+                      class="rt-field-caption"
+                      x="36"
+                      y="40"
+                      text-anchor="middle"
+                    >
+                      token
+                    </text>
+                  </g>
+                  <text
+                    id="rt-roll-input-label"
+                    class="rt-small-label"
+                    x="125"
+                    y="80"
+                    text-anchor="middle"
+                  >
+                    Input
+                  </text>
+                  <text
+                    id="rt-roll-output-label"
+                    class="rt-small-label"
+                    x="600"
+                    y="80"
+                    text-anchor="middle"
+                  >
+                    Output
+                  </text>
+                  <text
+                    id="rt-roll-kv-label"
+                    class="rt-small-label"
+                    x="112"
+                    y="219"
+                    text-anchor="end"
+                  >
+                    KV
+                  </text>
+                  <g
+                    id="rt-roll-prefix"
+                    class="rt-tile rt-prefix-tile"
+                    transform="translate(158 214)"
+                  >
+                    <rect
+                      x="-28"
+                      y="-17"
+                      width="56"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text text-anchor="middle" y="6">Prefix</text>
+                  </g>
+                  <g
+                    id="rt-roll-kv-1"
+                    class="rt-tile"
+                    transform="translate(240 214)"
+                  >
+                    <rect
+                      x="-28"
+                      y="-17"
+                      width="56"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text text-anchor="middle" y="6">—</text>
+                  </g>
+                  <g
+                    id="rt-roll-kv-2"
+                    class="rt-tile"
+                    transform="translate(314 214)"
+                  >
+                    <rect
+                      x="-28"
+                      y="-17"
+                      width="56"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text text-anchor="middle" y="6">—</text>
+                  </g>
+                  <g
+                    id="rt-roll-kv-3"
+                    class="rt-tile"
+                    transform="translate(388 214)"
+                  >
+                    <rect
+                      x="-28"
+                      y="-17"
+                      width="56"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text text-anchor="middle" y="6">—</text>
+                  </g>
+                  <text
+                    id="rt-drafts-label"
+                    class="rt-small-label"
+                    x="485"
+                    y="219"
+                    text-anchor="end"
+                  >
+                    Drafts
+                  </text>
+                  <g
+                    id="rt-draft-1"
+                    class="rt-draft"
+                    transform="translate(532 214)"
+                  >
+                    <rect
+                      x="-23"
+                      y="-17"
+                      width="46"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text class="rt-value" text-anchor="middle" y="7">—</text>
+                    <text
+                      class="rt-verdict"
+                      x="23"
+                      y="-22"
+                      text-anchor="middle"
+                    ></text>
+                    <text
+                      class="rt-probability"
+                      text-anchor="middle"
+                      y="38"
+                    ></text>
+                  </g>
+                  <g
+                    id="rt-draft-2"
+                    class="rt-draft"
+                    transform="translate(590 214)"
+                  >
+                    <rect
+                      x="-23"
+                      y="-17"
+                      width="46"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text class="rt-value" text-anchor="middle" y="7">—</text>
+                    <text
+                      class="rt-verdict"
+                      x="23"
+                      y="-22"
+                      text-anchor="middle"
+                    ></text>
+                    <text
+                      class="rt-probability"
+                      text-anchor="middle"
+                      y="38"
+                    ></text>
+                  </g>
+                  <g
+                    id="rt-draft-3"
+                    class="rt-draft"
+                    transform="translate(648 214)"
+                  >
+                    <rect
+                      x="-23"
+                      y="-17"
+                      width="46"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text class="rt-value" text-anchor="middle" y="7">—</text>
+                    <text
+                      class="rt-verdict"
+                      x="23"
+                      y="-22"
+                      text-anchor="middle"
+                    ></text>
+                    <text
+                      class="rt-probability"
+                      text-anchor="middle"
+                      y="38"
+                    ></text>
+                  </g>
+                  <g
+                    id="rt-target"
+                    class="rt-target"
+                    transform="translate(800 214)"
+                  >
+                    <rect
+                      x="-59"
+                      y="-30"
+                      width="118"
+                      height="60"
+                      rx="9"
+                    ></rect>
+                    <text class="rt-target-title" y="-4" text-anchor="middle">
+                      Target
+                    </text>
+                    <text
+                      id="rt-target-action"
+                      class="rt-small-label"
+                      y="17"
+                      text-anchor="middle"
+                    >
+                      wait for drafts
+                    </text>
+                  </g>
+                  <g id="rt-commit-strip">
+                    <rect
+                      id="rt-commit-bg"
+                      x="24"
+                      y="270"
+                      width="852"
+                      height="67"
+                      rx="8"
+                    ></rect>
+                    <text
+                      id="rt-committed-label"
+                      class="rt-committed-label"
+                      x="45"
+                      y="309"
+                    >
+                      Committed tokens
+                    </text>
+                  </g>
+                  <g
+                    id="rt-commit-prefix"
+                    class="rt-tile rt-prefix-tile"
+                    transform="translate(267 304)"
+                  >
+                    <rect
+                      x="-28"
+                      y="-17"
+                      width="56"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text text-anchor="middle" y="6">Prefix</text>
+                  </g>
+                  <g
+                    id="rt-committed-1"
+                    class="rt-tile rt-commit-token"
+                    transform="translate(406 304)"
+                  >
+                    <rect
+                      x="-28"
+                      y="-17"
+                      width="56"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text text-anchor="middle" y="6">—</text>
+                  </g>
+                  <g
+                    id="rt-committed-2"
+                    class="rt-tile rt-commit-token"
+                    transform="translate(554 304)"
+                  >
+                    <rect
+                      x="-28"
+                      y="-17"
+                      width="56"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text text-anchor="middle" y="6">—</text>
+                  </g>
+                  <g
+                    id="rt-committed-3"
+                    class="rt-tile rt-commit-token"
+                    transform="translate(702 304)"
+                  >
+                    <rect
+                      x="-28"
+                      y="-17"
+                      width="56"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text text-anchor="middle" y="6">—</text>
+                  </g>
+                  <g id="rt-commit-links" aria-hidden="true">
+                    <path id="rt-commit-link1" class="rt-wire"></path>
+                    <path id="rt-commit-link2" class="rt-wire"></path>
+                    <path id="rt-commit-link3" class="rt-wire"></path>
+                  </g>
+                  <text
+                    id="rt-tf-title"
+                    class="rt-section-title"
+                    x="28"
+                    y="375"
+                  >
+                    Teacher forcing
+                  </text>
+                  <text
+                    id="rt-tf-step"
+                    class="rt-stage-label"
+                    x="872"
+                    y="375"
+                    text-anchor="end"
+                  >
+                    Uses the committed tokens
+                  </text>
+                  <g
+                    id="rt-tf-input"
+                    class="rt-bundle"
+                    transform="translate(125 435)"
+                  >
+                    <rect
+                      class="rt-hidden-cell"
+                      x="-70"
+                      y="-24"
+                      width="67"
+                      height="48"
+                      rx="7"
+                    ></rect>
+                    <rect
+                      class="rt-token-cell"
+                      x="3"
+                      y="-24"
+                      width="67"
+                      height="48"
+                      rx="7"
+                    ></rect>
+                    <text
+                      class="rt-value"
+                      data-field="h"
+                      text-anchor="middle"
+                      x="-36"
+                      y="8"
+                    >
+                      —
+                    </text>
+                    <text
+                      class="rt-value"
+                      data-field="d"
+                      text-anchor="middle"
+                      x="36"
+                      y="8"
+                    >
+                      —
+                    </text>
+                    <text
+                      class="rt-field-caption"
+                      x="-36"
+                      y="40"
+                      text-anchor="middle"
+                    >
+                      hidden
+                    </text>
+                    <text
+                      class="rt-field-caption"
+                      x="36"
+                      y="40"
+                      text-anchor="middle"
+                    >
+                      token
+                    </text>
+                  </g>
+                  <g
+                    id="rt-tf-head"
+                    class="rt-module"
+                    transform="translate(360 435)"
+                  >
+                    <rect
+                      x="-55"
+                      y="-39"
+                      width="110"
+                      height="78"
+                      rx="10"
+                    ></rect>
+                    <text class="rt-module-title" y="-3" text-anchor="middle">
+                      Drafter
+                    </text>
+                    <text class="rt-phi" y="26" text-anchor="middle">φ</text>
+                  </g>
+                  <g
+                    id="rt-tf-output"
+                    class="rt-bundle"
+                    transform="translate(600 435)"
+                  >
+                    <rect
+                      class="rt-hidden-cell"
+                      x="-70"
+                      y="-24"
+                      width="67"
+                      height="48"
+                      rx="7"
+                    ></rect>
+                    <rect
+                      class="rt-token-cell"
+                      x="3"
+                      y="-24"
+                      width="67"
+                      height="48"
+                      rx="7"
+                    ></rect>
+                    <text
+                      class="rt-value"
+                      data-field="h"
+                      text-anchor="middle"
+                      x="-36"
+                      y="8"
+                    >
+                      —
+                    </text>
+                    <text
+                      class="rt-value"
+                      data-field="d"
+                      text-anchor="middle"
+                      x="36"
+                      y="8"
+                    >
+                      —
+                    </text>
+                    <text
+                      class="rt-field-caption"
+                      x="-36"
+                      y="40"
+                      text-anchor="middle"
+                    >
+                      hidden
+                    </text>
+                    <text
+                      class="rt-field-caption"
+                      x="36"
+                      y="40"
+                      text-anchor="middle"
+                    >
+                      logits
+                    </text>
+                  </g>
+                  <text
+                    id="rt-tf-input-label"
+                    class="rt-small-label"
+                    x="125"
+                    y="399"
+                    text-anchor="middle"
+                  >
+                    Input
+                  </text>
+                  <text
+                    id="rt-tf-output-label"
+                    class="rt-small-label"
+                    x="600"
+                    y="399"
+                    text-anchor="middle"
+                  >
+                    Output
+                  </text>
+                  <text
+                    id="rt-tf-kv-label"
+                    class="rt-small-label"
+                    x="112"
+                    y="531"
+                    text-anchor="end"
+                  >
+                    KV writes
+                  </text>
+                  <g
+                    id="rt-tf-prefix"
+                    class="rt-tile rt-prefix-tile"
+                    transform="translate(158 526)"
+                  >
+                    <rect
+                      x="-28"
+                      y="-17"
+                      width="56"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text text-anchor="middle" y="6">Prefix</text>
+                  </g>
+                  <g
+                    id="rt-tf-kv-1"
+                    class="rt-tile"
+                    transform="translate(240 526)"
+                  >
+                    <rect
+                      x="-28"
+                      y="-17"
+                      width="56"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text text-anchor="middle" y="6">—</text>
+                  </g>
+                  <g
+                    id="rt-tf-kv-2"
+                    class="rt-tile"
+                    transform="translate(314 526)"
+                  >
+                    <rect
+                      x="-28"
+                      y="-17"
+                      width="56"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text text-anchor="middle" y="6">—</text>
+                  </g>
+                  <g
+                    id="rt-tf-kv-3"
+                    class="rt-tile"
+                    transform="translate(388 526)"
+                  >
+                    <rect
+                      x="-28"
+                      y="-17"
+                      width="56"
+                      height="34"
+                      rx="6"
+                    ></rect>
+                    <text text-anchor="middle" y="6">—</text>
+                  </g>
+                  <text
+                    id="rt-logits-label"
+                    class="rt-small-label"
+                    x="540"
+                    y="531"
+                    text-anchor="end"
+                  >
+                    Logits
+                  </text>
+                  <g
+                    id="rt-logit-1"
+                    class="rt-logit-pair"
+                    transform="translate(595 526)"
+                    opacity="0"
+                  >
+                    <circle
+                      cx="-18"
+                      cy="0"
+                      r="17"
+                      class="rt-q-circle"
+                    ></circle>
+                    <text
+                      class="rt-q-value"
+                      x="-18"
+                      y="5"
+                      text-anchor="middle"
+                    >
+                      q₁
+                    </text>
+                    <text
+                      class="rt-pair-mark"
+                      x="0"
+                      y="4"
+                      text-anchor="middle"
+                    >
+                      ↔
+                    </text>
+                    <circle
+                      cx="25"
+                      cy="0"
+                      r="17"
+                      class="rt-p-circle"
+                    ></circle>
+                    <text
+                      class="rt-p-value"
+                      x="25"
+                      y="5"
+                      text-anchor="middle"
+                    >
+                      p₁₁
+                    </text>
+                  </g>
+                  <g
+                    id="rt-logit-2"
+                    class="rt-logit-pair"
+                    transform="translate(681 526)"
+                    opacity="0"
+                  >
+                    <circle
+                      cx="-18"
+                      cy="0"
+                      r="17"
+                      class="rt-q-circle"
+                    ></circle>
+                    <text
+                      class="rt-q-value"
+                      x="-18"
+                      y="5"
+                      text-anchor="middle"
+                    >
+                      q₂
+                    </text>
+                    <text
+                      class="rt-pair-mark"
+                      x="0"
+                      y="4"
+                      text-anchor="middle"
+                    >
+                      ↔
+                    </text>
+                    <circle
+                      cx="25"
+                      cy="0"
+                      r="17"
+                      class="rt-p-circle"
+                    ></circle>
+                    <text
+                      class="rt-p-value"
+                      x="25"
+                      y="5"
+                      text-anchor="middle"
+                    >
+                      p₂₁
+                    </text>
+                  </g>
+                  <g
+                    id="rt-logit-3"
+                    class="rt-logit-pair"
+                    transform="translate(767 526)"
+                    opacity="0"
+                  >
+                    <circle
+                      cx="-18"
+                      cy="0"
+                      r="17"
+                      class="rt-q-circle"
+                    ></circle>
+                    <text
+                      class="rt-q-value"
+                      x="-18"
+                      y="5"
+                      text-anchor="middle"
+                    >
+                      q₃
+                    </text>
+                    <text
+                      class="rt-pair-mark"
+                      x="0"
+                      y="4"
+                      text-anchor="middle"
+                    >
+                      ↔
+                    </text>
+                    <circle
+                      cx="25"
+                      cy="0"
+                      r="17"
+                      class="rt-p-circle"
+                    ></circle>
+                    <text
+                      class="rt-p-value"
+                      x="25"
+                      y="5"
+                      text-anchor="middle"
+                    >
+                      p₂₂
+                    </text>
+                  </g>
+                  <g id="rt-packet" class="rt-packet" opacity="0">
+                    <rect
+                      x="-31"
+                      y="-16"
+                      width="62"
+                      height="32"
+                      rx="7"
+                    ></rect>
+                    <text class="rt-packet-text" y="5" text-anchor="middle">
+                      h₁ · d₁
+                    </text>
+                  </g>
+                  <g
+                    id="rt-token-packet"
+                    class="rt-packet rt-token-packet"
+                    opacity="0"
+                  >
+                    <rect
+                      x="-23"
+                      y="-16"
+                      width="46"
+                      height="32"
+                      rx="7"
+                    ></rect>
+                    <text class="rt-packet-text" y="5" text-anchor="middle">
+                      d₁₁
+                    </text>
+                  </g>
+                  <g
+                    id="rt-kv-packet"
+                    class="rt-packet rt-kv-packet"
+                    opacity="0"
+                  >
+                    <rect
+                      x="-25"
+                      y="-14"
+                      width="50"
+                      height="28"
+                      rx="6"
+                    ></rect>
+                    <text class="rt-packet-text" y="5" text-anchor="middle">
+                      KV
+                    </text>
+                  </g>
+                </svg>
+                <div class="rt-controls">
+                  <p id="rt-caption">
+                    Draft tokens first; train on the committed sequence
+                    afterward.
+                  </p>
+                  <div class="rt-buttons">
+                    <button
+                      id="rt-play"
+                      type="button"
+                      aria-label="Pause animation"
+                    >
+                      <svg viewBox="0 0 20 20" aria-hidden="true">
+                        <path
+                          id="rt-play-icon"
+                          d="M5 4h3v12H5ZM12 4h3v12h-3Z"
+                        ></path></svg
+                      ><span id="rt-play-label">Pause</span></button
+                    ><button
+                      id="rt-next"
+                      type="button"
+                      aria-label="Next step"
+                      title="Next step"
+                    >
+                      <svg viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="m5 4 8 6-8 6ZM15 4v12"></path>
+                      </svg></button
+                    ><button
+                      id="rt-replay"
+                      type="button"
+                      aria-label="Replay animation"
+                      title="Replay animation"
+                    >
+                      <svg viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="M4 7a7 7 0 1 1-1 6M4 2v5h5"></path>
+                      </svg>
+                    </button>
+                    <select
+                      id="rt-speed"
+                      aria-label="Playback speed"
+                      title="Playback speed"
+                    >
+                      <option value="0.25">0.25×</option>
+                      <option value="0.5">0.5×</option>
+                      <option value="0.75">0.75×</option>
+                      <option value="1" selected>1×</option>
+                      <option value="1.5">1.5×</option>
+                      <option value="2">2×</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="rt-timeline">
+                  <input
+                    id="rt-progress"
+                    type="range"
+                    min="0"
+                    max="22400"
+                    step="10"
+                    value="0"
+                    aria-label="Animation progress"
+                    aria-valuetext="0.0 of 22.4 seconds"
+                  />
+                  <span id="rt-time" aria-hidden="true">0.0 / 22.4 s</span>
+                </div>
+                <figcaption id="rt-figure-caption">
+                  <span><i class="rt-key-prefix"></i> Target-derived</span
+                  ><span><i class="rt-key-draft"></i> Draft-derived</span
+                  ><span
+                    ><i class="rt-key-error"></i> Hidden / KV inconsistent
+                    with rollout</span
+                  >
+                </figcaption>
+                <noscript
+                  ><p>
+                    Enable JavaScript to follow the rollout and
+                    teacher-forcing computations.
+                  </p></noscript
+                >
+              </figure>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="method"
+        class="research-section method-section"
+        aria-labelledby="method-title"
+      >
+        <div class="wide">
+          <div class="module-deck method-deck" data-module-group="method">
+            <div class="section-intro method-intro">
+              <div class="section-label"><span>04</span> METHOD</div>
+              <h2 id="method-title">How does the draft head learn?</h2>
+            </div>
+            <p class="section-summary method-summary">
+              Reconstruct draft states, optimize the acceptance chain, and learn
+              up to the first rejection.
+            </p>
+            <div class="module-tabs method-tabs" role="tablist" aria-label="Method views">
+              <button id="method-components-tab" type="button" role="tab"
+                aria-controls="method-components-panel" aria-selected="true" tabindex="0">Components</button>
+              <button id="method-pipeline-tab" type="button" role="tab"
+                aria-controls="method-pipeline" aria-selected="false" tabindex="-1">Pipeline</button>
+              
+            </div>
+            <div class="module-panels method-panels">
+              <div id="method-components-panel" class="module-panel method-component-panel"
+                role="tabpanel" aria-labelledby="method-components-tab" tabindex="0"
+                data-title="Components">
+                <div class="challenge-layout method-layout">
+                  <ol class="challenge-list method-components">
+                    <li id="method-dpr" class="challenge-item method-component">
+                      <div class="challenge-heading">
+                        <span class="challenge-index" aria-hidden="true">01</span>
+                        <h3>Draft-Path Reconstruction</h3>
+                      </div>
+                      <p>
+                        Replay each cycle from its recorded boundary using the original
+                        drafts. Recompute hidden states and KV to pair each head
+                        prediction with the verification signal under the same context.
+                      </p>
+                      <p class="method-takeaway">Recorded drafts become inputs. No resampling.</p>
+                    </li>
+                    <li id="method-dca" class="challenge-item method-component">
+                      <div class="challenge-heading">
+                        <span class="challenge-index" aria-hidden="true">02</span>
+                        <h3>Depth-Coupled Acceptance</h3>
+                      </div>
+                      <p>
+                        Optimize an acceptance-chain surrogate so deeper predictions
+                        contribute through earlier acceptance.
+                      </p>
+                      <div class="equation method-equation" role="math"
+                        aria-label="The DCA loss is minus log of the sum from l equals 1 to K of the product from i equals 1 to l of alpha i.">
+                        <span class="equation-name" aria-hidden="true">ℒ<sub>DCA</sub></span>
+                        <span aria-hidden="true">= −log</span>
+                        <span class="math-operator" aria-hidden="true"><small>K</small><b>∑</b><small>l = 1</small></span>
+                        <span class="math-operator" aria-hidden="true"><small>l</small><b>∏</b><small>i = 1</small></span>
+                        <span aria-hidden="true">α<sub>i</sub></span>
+                      </div>
+                      <p class="method-note equation-note">α<sub>i</sub> = 1 − TV(p<sub>i</sub>, q<sub>i</sub>) · K = drafting depth</p>
+                      
+                    </li>
+                    <li id="method-vgm" class="challenge-item method-component">
+                      <div class="challenge-heading">
+                        <span class="challenge-index" aria-hidden="true">03</span>
+                        <h3>Verify-Gated Masking</h3>
+                      </div>
+                      <p>
+                        Include the first rejected position and exclude the later suffix.
+                        DCA’s soft weights alone do not enforce this rejection boundary.
+                      </p>
+                      <div class="method-mask" role="img"
+                        aria-label="Example: learn from accepted draft 1 and rejected draft 2; mask the discarded draft 3.">
+                        <div class="method-mask-position" aria-hidden="true"><span>d₁ <b>✓</b></span><small>learn</small></div>
+                        <div class="method-mask-position first-rejection" aria-hidden="true"><span>d₂ <b>×</b></span><small>learn</small></div>
+                        <div class="method-mask-suffix" aria-hidden="true"><div class="method-mask-position excluded"><span>d₃</span><small>masked</small></div></div>
+                      </div>
+                      <p class="method-takeaway">
+                        The first position always teaches the head, even from a random start.
+                      </p>
+                    </li>
+                  </ol>
+                  <div id="mismatch-reconstruction" class="challenge-demo method-demo"
+                    role="group" aria-labelledby="method-demo-title">
+                    <figure
+                      id="reconstruction-demo"
+                      class="rr-figure"
+                      aria-labelledby="rr-figure-caption"
+                      data-playing="false"
+                      data-phase="rollout"
+                    >
+                      <p id="method-demo-title" class="challenge-demo-label">
+                        Recorded rollout → draft-path reconstruction
+                      </p>
+                      <svg
+                        id="rr-canvas"
+                        class="rr-canvas"
+                        viewBox="0 0 900 600"
+                        role="img"
+                        aria-labelledby="rr-title rr-description"
+                      >
+                        <title id="rr-title">
+                          Rollout records each cycle; GrowMTP reconstructs its
+                          draft path
+                        </title>
+                        <desc id="rr-description">
+                          The same two rollout cycles as the preceding animation:
+                          cycle 1 rejects its first draft, and cycle 2 accepts its
+                          first draft and rejects its second. Each cycle records its
+                          target boundary, all three draft tokens, and verification
+                          distributions. Reconstruction starts each cycle from that
+                          recorded boundary, rebuilds its prefix KV, and feeds the
+                          recorded drafts back in order. The head recomputes hidden
+                          states, logits, and KV; the draft tokens are not sampled
+                          again. Green features follow the same computation as
+                          rollout. Logit pairs after the first rejection are gray
+                          because VGM excludes them from the loss.
+                        </desc>
+                        <defs>
+                          <marker
+                            id="rr-arrow"
+                            viewBox="0 0 10 10"
+                            refX="8"
+                            refY="5"
+                            markerWidth="6"
+                            markerHeight="6"
+                            orient="auto"
+                          >
+                            <path
+                              d="M2 1l6 4-6 4"
+                              fill="none"
+                              stroke="#9fb3bd"
+                              stroke-width="1.5"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            ></path>
+                          </marker>
+                        </defs>
+                        <text
+                          id="rr-roll-title"
+                          class="rr-section-title"
+                          x="28"
+                          y="26"
+                        >
+                          Rollout
+                        </text>
+                        <text
+                          id="rr-roll-step"
+                          class="rr-stage-label"
+                          x="872"
+                          y="26"
+                          text-anchor="end"
+                        >
+                          Cycle 1 · draft 1 / 3
+                        </text>
+                        <g class="rr-paths" aria-hidden="true">
+                          <path id="rr-roll-in" class="rr-wire"></path>
+                          <path id="rr-roll-out" class="rr-wire"></path>
+                          <path
+                            id="rr-roll-loop"
+                            class="rr-wire rr-green-wire"
+                          ></path>
+                          <path id="rr-batch" class="rr-wire rr-blue-wire"></path>
+
+                          <path id="rr-tf-in" class="rr-wire"></path>
+                          <path id="rr-tf-out" class="rr-wire"></path>
+                          <path
+                            id="rr-tf-loop"
+                            class="rr-wire rr-green-wire"
+                          ></path>
+                          <path id="rr-source" class="rr-wire rr-amber-wire"></path>
+                          <path id="rr-kv-write" class="rr-wire rr-red-wire"></path>
+                          <path id="rr-record-store" class="rr-wire"></path>
+                          <path id="rr-store" class="rr-wire"></path>
+                        </g>
+                        <g
+                          id="rr-roll-input"
+                          class="rr-bundle"
+                          transform="translate(125 116)"
+                        >
+                          <rect
+                            class="rr-hidden-cell"
+                            x="-70"
+                            y="-24"
+                            width="67"
+                            height="48"
+                            rx="7"
+                          ></rect>
+                          <rect
+                            class="rr-token-cell"
+                            x="3"
+                            y="-24"
+                            width="67"
+                            height="48"
+                            rx="7"
+                          ></rect>
+                          <text
+                            class="rr-value"
+                            data-field="h"
+                            text-anchor="middle"
+                            x="-36"
+                            y="8"
+                          >
+                            h₀
+                          </text>
+                          <text
+                            class="rr-value"
+                            data-field="d"
+                            text-anchor="middle"
+                            x="36"
+                            y="8"
+                          >
+                            yₜ
+                          </text>
+                          <text
+                            class="rr-field-caption"
+                            x="-36"
+                            y="40"
+                            text-anchor="middle"
+                          >
+                            hidden
+                          </text>
+                          <text
+                            class="rr-field-caption"
+                            x="36"
+                            y="40"
+                            text-anchor="middle"
+                          >
+                            token
+                          </text>
+                        </g>
+                        <g
+                          id="rr-roll-head"
+                          class="rr-module"
+                          transform="translate(360 116)"
+                        >
+                          <rect
+                            x="-55"
+                            y="-39"
+                            width="110"
+                            height="78"
+                            rx="10"
+                          ></rect>
+                          <text class="rr-module-title" y="-3" text-anchor="middle">
+                            Drafter
+                          </text>
+                          <text class="rr-phi" y="26" text-anchor="middle">φ</text>
+                        </g>
+                        <g
+                          id="rr-roll-output"
+                          class="rr-bundle"
+                          transform="translate(600 116)"
+                        >
+                          <rect
+                            class="rr-hidden-cell"
+                            x="-70"
+                            y="-24"
+                            width="67"
+                            height="48"
+                            rx="7"
+                          ></rect>
+                          <rect
+                            class="rr-token-cell"
+                            x="3"
+                            y="-24"
+                            width="67"
+                            height="48"
+                            rx="7"
+                          ></rect>
+                          <text
+                            class="rr-value"
+                            data-field="h"
+                            text-anchor="middle"
+                            x="-36"
+                            y="8"
+                          >
+                            —
+                          </text>
+                          <text
+                            class="rr-value"
+                            data-field="d"
+                            text-anchor="middle"
+                            x="36"
+                            y="8"
+                          >
+                            —
+                          </text>
+                          <text
+                            class="rr-field-caption"
+                            x="-36"
+                            y="40"
+                            text-anchor="middle"
+                          >
+                            hidden
+                          </text>
+                          <text
+                            class="rr-field-caption"
+                            x="36"
+                            y="40"
+                            text-anchor="middle"
+                          >
+                            token
+                          </text>
+                        </g>
+                        <text
+                          id="rr-roll-input-label"
+                          class="rr-small-label"
+                          x="125"
+                          y="80"
+                          text-anchor="middle"
+                        >
+                          Input
+                        </text>
+                        <text
+                          id="rr-roll-output-label"
+                          class="rr-small-label"
+                          x="600"
+                          y="80"
+                          text-anchor="middle"
+                        >
+                          Output
+                        </text>
+                        <text
+                          id="rr-roll-kv-label"
+                          class="rr-small-label"
+                          x="112"
+                          y="219"
+                          text-anchor="end"
+                        >
+                          KV
+                        </text>
+                        <g
+                          id="rr-roll-prefix"
+                          class="rr-tile rr-prefix-tile"
+                          transform="translate(158 214)"
+                        >
+                          <rect
+                            x="-28"
+                            y="-17"
+                            width="56"
+                            height="34"
+                            rx="6"
+                          ></rect>
+                          <text text-anchor="middle" y="6">Prefix</text>
+                        </g>
+                        <g
+                          id="rr-roll-kv-1"
+                          class="rr-tile"
+                          transform="translate(240 214)"
+                        >
+                          <rect
+                            x="-28"
+                            y="-17"
+                            width="56"
+                            height="34"
+                            rx="6"
+                          ></rect>
+                          <text text-anchor="middle" y="6">—</text>
+                        </g>
+                        <g
+                          id="rr-roll-kv-2"
+                          class="rr-tile"
+                          transform="translate(314 214)"
+                        >
+                          <rect
+                            x="-28"
+                            y="-17"
+                            width="56"
+                            height="34"
+                            rx="6"
+                          ></rect>
+                          <text text-anchor="middle" y="6">—</text>
+                        </g>
+                        <g
+                          id="rr-roll-kv-3"
+                          class="rr-tile"
+                          transform="translate(388 214)"
+                        >
+                          <rect
+                            x="-28"
+                            y="-17"
+                            width="56"
+                            height="34"
+                            rx="6"
+                          ></rect>
+                          <text text-anchor="middle" y="6">—</text>
+                        </g>
+                        <text
+                          id="rr-drafts-label"
+                          class="rr-small-label"
+                          x="485"
+                          y="219"
+                          text-anchor="end"
+                        >
+                          Drafts
+                        </text>
+                        <g
+                          id="rr-draft-1"
+                          class="rr-draft"
+                          transform="translate(532 214)"
+                        >
+                          <rect
+                            x="-23"
+                            y="-17"
+                            width="46"
+                            height="34"
+                            rx="6"
+                          ></rect>
+                          <text class="rr-value" text-anchor="middle" y="7">—</text>
+                          <text
+                            class="rr-verdict"
+                            x="23"
+                            y="-22"
+                            text-anchor="middle"
+                          ></text>
+                          <text
+                            class="rr-probability"
+                            text-anchor="middle"
+                            y="38"
+                          ></text>
+                        </g>
+                        <g
+                          id="rr-draft-2"
+                          class="rr-draft"
+                          transform="translate(590 214)"
+                        >
+                          <rect
+                            x="-23"
+                            y="-17"
+                            width="46"
+                            height="34"
+                            rx="6"
+                          ></rect>
+                          <text class="rr-value" text-anchor="middle" y="7">—</text>
+                          <text
+                            class="rr-verdict"
+                            x="23"
+                            y="-22"
+                            text-anchor="middle"
+                          ></text>
+                          <text
+                            class="rr-probability"
+                            text-anchor="middle"
+                            y="38"
+                          ></text>
+                        </g>
+                        <g
+                          id="rr-draft-3"
+                          class="rr-draft"
+                          transform="translate(648 214)"
+                        >
+                          <rect
+                            x="-23"
+                            y="-17"
+                            width="46"
+                            height="34"
+                            rx="6"
+                          ></rect>
+                          <text class="rr-value" text-anchor="middle" y="7">—</text>
+                          <text
+                            class="rr-verdict"
+                            x="23"
+                            y="-22"
+                            text-anchor="middle"
+                          ></text>
+                          <text
+                            class="rr-probability"
+                            text-anchor="middle"
+                            y="38"
+                          ></text>
+                        </g>
+                        <g
+                          id="rr-target"
+                          class="rr-target"
+                          transform="translate(800 214)"
+                        >
+                          <rect
+                            x="-59"
+                            y="-30"
+                            width="118"
+                            height="60"
+                            rx="9"
+                          ></rect>
+                          <text class="rr-target-title" y="-4" text-anchor="middle">
+                            Target
+                          </text>
+                          <text
+                            id="rr-target-action"
+                            class="rr-small-label"
+                            y="17"
+                            text-anchor="middle"
+                          >
+                            wait for drafts
+                          </text>
+                        </g>
+                        <g id="rr-records">
+                          <rect
+                            id="rr-record-bg"
+                            x="24"
+                            y="270"
+                            width="852"
+                            height="148"
+                            rx="8"
+                          ></rect>
+                          <text
+                            id="rr-records-title"
+                            class="rr-records-title"
+                            x="44"
+                            y="293"
+                          >
+                            Recorded cycles
+                          </text>
+                          <g id="rr-record-cycle-1" class="rr-record-cycle">
+                            <text
+                              id="rr-record-name-1"
+                              class="rr-record-name"
+                              x="44"
+                              y="328"
+                            >
+                              Cycle 1
+                            </text>
+                            <g
+                              id="rr-boundary-1"
+                              class="rr-record-boundary"
+                              transform="translate(215 323)"
+                            >
+                              <rect
+                                x="-64"
+                                y="-17"
+                                width="128"
+                                height="34"
+                                rx="6"
+                              ></rect>
+                              <text y="6" text-anchor="middle">—</text>
+                            </g>
+                            <path id="rr-record-link-1" class="rr-wire"></path>
+                            <g
+                              id="rr-record-1-1"
+                              class="rr-record-draft"
+                              transform="translate(407 323)"
+                            >
+                              <rect
+                                x="-28"
+                                y="-17"
+                                width="56"
+                                height="34"
+                                rx="6"
+                              ></rect>
+                              <text class="rr-value" y="7" text-anchor="middle">
+                                —
+                              </text>
+                              <text
+                                class="rr-record-verdict"
+                                x="28"
+                                y="-18"
+                                text-anchor="middle"
+                              ></text>
+                              <text
+                                class="rr-probability"
+                                y="29"
+                                text-anchor="middle"
+                              ></text>
+                            </g>
+                            <g
+                              id="rr-record-1-2"
+                              class="rr-record-draft"
+                              transform="translate(537 323)"
+                            >
+                              <rect
+                                x="-28"
+                                y="-17"
+                                width="56"
+                                height="34"
+                                rx="6"
+                              ></rect>
+                              <text class="rr-value" y="7" text-anchor="middle">
+                                —
+                              </text>
+                              <text
+                                class="rr-record-verdict"
+                                x="28"
+                                y="-18"
+                                text-anchor="middle"
+                              ></text>
+                              <text
+                                class="rr-probability"
+                                y="29"
+                                text-anchor="middle"
+                              ></text>
+                            </g>
+                            <g
+                              id="rr-record-1-3"
+                              class="rr-record-draft"
+                              transform="translate(667 323)"
+                            >
+                              <rect
+                                x="-28"
+                                y="-17"
+                                width="56"
+                                height="34"
+                                rx="6"
+                              ></rect>
+                              <text class="rr-value" y="7" text-anchor="middle">
+                                —
+                              </text>
+                              <text
+                                class="rr-record-verdict"
+                                x="28"
+                                y="-18"
+                                text-anchor="middle"
+                              ></text>
+                              <text
+                                class="rr-probability"
+                                y="29"
+                                text-anchor="middle"
+                              ></text>
+                            </g>
+                          </g>
+                          <g id="rr-record-cycle-2" class="rr-record-cycle">
+                            <text
+                              id="rr-record-name-2"
+                              class="rr-record-name"
+                              x="44"
+                              y="387"
+                            >
+                              Cycle 2
+                            </text>
+                            <g
+                              id="rr-boundary-2"
+                              class="rr-record-boundary"
+                              transform="translate(215 382)"
+                            >
+                              <rect
+                                x="-64"
+                                y="-17"
+                                width="128"
+                                height="34"
+                                rx="6"
+                              ></rect>
+                              <text y="6" text-anchor="middle">—</text>
+                            </g>
+                            <path id="rr-record-link-2" class="rr-wire"></path>
+                            <g
+                              id="rr-record-2-1"
+                              class="rr-record-draft"
+                              transform="translate(407 382)"
+                            >
+                              <rect
+                                x="-28"
+                                y="-17"
+                                width="56"
+                                height="34"
+                                rx="6"
+                              ></rect>
+                              <text class="rr-value" y="7" text-anchor="middle">
+                                —
+                              </text>
+                              <text
+                                class="rr-record-verdict"
+                                x="28"
+                                y="-18"
+                                text-anchor="middle"
+                              ></text>
+                              <text
+                                class="rr-probability"
+                                y="29"
+                                text-anchor="middle"
+                              ></text>
+                            </g>
+                            <g
+                              id="rr-record-2-2"
+                              class="rr-record-draft"
+                              transform="translate(537 382)"
+                            >
+                              <rect
+                                x="-28"
+                                y="-17"
+                                width="56"
+                                height="34"
+                                rx="6"
+                              ></rect>
+                              <text class="rr-value" y="7" text-anchor="middle">
+                                —
+                              </text>
+                              <text
+                                class="rr-record-verdict"
+                                x="28"
+                                y="-18"
+                                text-anchor="middle"
+                              ></text>
+                              <text
+                                class="rr-probability"
+                                y="29"
+                                text-anchor="middle"
+                              ></text>
+                            </g>
+                            <g
+                              id="rr-record-2-3"
+                              class="rr-record-draft"
+                              transform="translate(667 382)"
+                            >
+                              <rect
+                                x="-28"
+                                y="-17"
+                                width="56"
+                                height="34"
+                                rx="6"
+                              ></rect>
+                              <text class="rr-value" y="7" text-anchor="middle">
+                                —
+                              </text>
+                              <text
+                                class="rr-record-verdict"
+                                x="28"
+                                y="-18"
+                                text-anchor="middle"
+                              ></text>
+                              <text
+                                class="rr-probability"
+                                y="29"
+                                text-anchor="middle"
+                              ></text>
+                            </g>
+                          </g>
+                        </g>
+                        <text
+                          id="rr-tf-title"
+                          class="rr-section-title"
+                          x="28"
+                          y="375"
+                        >
+                          GrowMTP reconstruction
+                        </text>
+                        <text
+                          id="rr-tf-step"
+                          class="rr-stage-label"
+                          x="872"
+                          y="375"
+                          text-anchor="end"
+                        >
+                          Uses the recorded cycles
+                        </text>
+                        <g
+                          id="rr-tf-input"
+                          class="rr-bundle"
+                          transform="translate(125 435)"
+                        >
+                          <rect
+                            class="rr-hidden-cell"
+                            x="-70"
+                            y="-24"
+                            width="67"
+                            height="48"
+                            rx="7"
+                          ></rect>
+                          <rect
+                            class="rr-token-cell"
+                            x="3"
+                            y="-24"
+                            width="67"
+                            height="48"
+                            rx="7"
+                          ></rect>
+                          <text
+                            class="rr-value"
+                            data-field="h"
+                            text-anchor="middle"
+                            x="-36"
+                            y="8"
+                          >
+                            —
+                          </text>
+                          <text
+                            class="rr-value"
+                            data-field="d"
+                            text-anchor="middle"
+                            x="36"
+                            y="8"
+                          >
+                            —
+                          </text>
+                          <text
+                            class="rr-field-caption"
+                            x="-36"
+                            y="40"
+                            text-anchor="middle"
+                          >
+                            hidden
+                          </text>
+                          <text
+                            class="rr-field-caption"
+                            x="36"
+                            y="40"
+                            text-anchor="middle"
+                          >
+                            token
+                          </text>
+                        </g>
+                        <g
+                          id="rr-tf-head"
+                          class="rr-module"
+                          transform="translate(360 435)"
+                        >
+                          <rect
+                            x="-55"
+                            y="-39"
+                            width="110"
+                            height="78"
+                            rx="10"
+                          ></rect>
+                          <text class="rr-module-title" y="-3" text-anchor="middle">
+                            Drafter
+                          </text>
+                          <text class="rr-phi" y="26" text-anchor="middle">φ</text>
+                        </g>
+                        <g
+                          id="rr-tf-output"
+                          class="rr-bundle"
+                          transform="translate(600 435)"
+                        >
+                          <rect
+                            class="rr-hidden-cell"
+                            x="-70"
+                            y="-24"
+                            width="67"
+                            height="48"
+                            rx="7"
+                          ></rect>
+                          <rect
+                            class="rr-token-cell"
+                            x="3"
+                            y="-24"
+                            width="67"
+                            height="48"
+                            rx="7"
+                          ></rect>
+                          <text
+                            class="rr-value"
+                            data-field="h"
+                            text-anchor="middle"
+                            x="-36"
+                            y="8"
+                          >
+                            —
+                          </text>
+                          <text
+                            class="rr-value"
+                            data-field="d"
+                            text-anchor="middle"
+                            x="36"
+                            y="8"
+                          >
+                            —
+                          </text>
+                          <text
+                            class="rr-field-caption"
+                            x="-36"
+                            y="40"
+                            text-anchor="middle"
+                          >
+                            hidden
+                          </text>
+                          <text
+                            class="rr-field-caption"
+                            x="36"
+                            y="40"
+                            text-anchor="middle"
+                          >
+                            logits
+                          </text>
+                        </g>
+                        <text
+                          id="rr-tf-input-label"
+                          class="rr-small-label"
+                          x="125"
+                          y="399"
+                          text-anchor="middle"
+                        >
+                          Input
+                        </text>
+                        <text
+                          id="rr-tf-output-label"
+                          class="rr-small-label"
+                          x="600"
+                          y="399"
+                          text-anchor="middle"
+                        >
+                          Output
+                        </text>
+                        <text
+                          id="rr-tf-kv-label"
+                          class="rr-small-label"
+                          x="112"
+                          y="531"
+                          text-anchor="end"
+                        >
+                          KV writes
+                        </text>
+                        <g
+                          id="rr-tf-prefix"
+                          class="rr-tile rr-prefix-tile"
+                          transform="translate(158 526)"
+                        >
+                          <rect
+                            x="-28"
+                            y="-17"
+                            width="56"
+                            height="34"
+                            rx="6"
+                          ></rect>
+                          <text text-anchor="middle" y="6">Prefix</text>
+                        </g>
+                        <g
+                          id="rr-tf-kv-1"
+                          class="rr-tile"
+                          transform="translate(240 526)"
+                        >
+                          <rect
+                            x="-28"
+                            y="-17"
+                            width="56"
+                            height="34"
+                            rx="6"
+                          ></rect>
+                          <text text-anchor="middle" y="6">—</text>
+                        </g>
+                        <g
+                          id="rr-tf-kv-2"
+                          class="rr-tile"
+                          transform="translate(314 526)"
+                        >
+                          <rect
+                            x="-28"
+                            y="-17"
+                            width="56"
+                            height="34"
+                            rx="6"
+                          ></rect>
+                          <text text-anchor="middle" y="6">—</text>
+                        </g>
+                        <g
+                          id="rr-tf-kv-3"
+                          class="rr-tile"
+                          transform="translate(388 526)"
+                        >
+                          <rect
+                            x="-28"
+                            y="-17"
+                            width="56"
+                            height="34"
+                            rx="6"
+                          ></rect>
+                          <text text-anchor="middle" y="6">—</text>
+                        </g>
+                        <text
+                          id="rr-logits-label"
+                          class="rr-small-label"
+                          x="540"
+                          y="531"
+                          text-anchor="end"
+                        >
+                          Loss pairs
+                        </text>
+                        <g
+                          id="rr-logit-1"
+                          class="rr-logit-pair"
+                          transform="translate(595 526)"
+                          opacity="0"
+                        >
+                          <circle
+                            cx="-18"
+                            cy="0"
+                            r="17"
+                            class="rr-q-circle"
+                          ></circle>
+                          <text
+                            class="rr-q-value"
+                            x="-18"
+                            y="5"
+                            text-anchor="middle"
+                          >
+                            q₁₁
+                          </text>
+                          <text
+                            class="rr-pair-mark"
+                            x="0"
+                            y="4"
+                            text-anchor="middle"
+                          >
+                            ↔
+                          </text>
+                          <circle
+                            cx="25"
+                            cy="0"
+                            r="17"
+                            class="rr-p-circle"
+                          ></circle>
+                          <text
+                            class="rr-p-value"
+                            x="25"
+                            y="5"
+                            text-anchor="middle"
+                          >
+                            p₁₁
+                          </text>
+                        </g>
+                        <g
+                          id="rr-logit-2"
+                          class="rr-logit-pair"
+                          transform="translate(681 526)"
+                          opacity="0"
+                        >
+                          <circle
+                            cx="-18"
+                            cy="0"
+                            r="17"
+                            class="rr-q-circle"
+                          ></circle>
+                          <text
+                            class="rr-q-value"
+                            x="-18"
+                            y="5"
+                            text-anchor="middle"
+                          >
+                            q₁₂
+                          </text>
+                          <text
+                            class="rr-pair-mark"
+                            x="0"
+                            y="4"
+                            text-anchor="middle"
+                          >
+                            ↔
+                          </text>
+                          <circle
+                            cx="25"
+                            cy="0"
+                            r="17"
+                            class="rr-p-circle"
+                          ></circle>
+                          <text
+                            class="rr-p-value"
+                            x="25"
+                            y="5"
+                            text-anchor="middle"
+                          >
+                            p₁₂
+                          </text>
+                        </g>
+                        <g
+                          id="rr-logit-3"
+                          class="rr-logit-pair"
+                          transform="translate(767 526)"
+                          opacity="0"
+                        >
+                          <circle
+                            cx="-18"
+                            cy="0"
+                            r="17"
+                            class="rr-q-circle"
+                          ></circle>
+                          <text
+                            class="rr-q-value"
+                            x="-18"
+                            y="5"
+                            text-anchor="middle"
+                          >
+                            q₁₃
+                          </text>
+                          <text
+                            class="rr-pair-mark"
+                            x="0"
+                            y="4"
+                            text-anchor="middle"
+                          >
+                            ↔
+                          </text>
+                          <circle
+                            cx="25"
+                            cy="0"
+                            r="17"
+                            class="rr-p-circle"
+                          ></circle>
+                          <text
+                            class="rr-p-value"
+                            x="25"
+                            y="5"
+                            text-anchor="middle"
+                          >
+                            p₁₃
+                          </text>
+                        </g>
+                        <g id="rr-packet" class="rr-packet" opacity="0">
+                          <rect
+                            x="-31"
+                            y="-16"
+                            width="62"
+                            height="32"
+                            rx="7"
+                          ></rect>
+                          <text class="rr-packet-text" y="5" text-anchor="middle">
+                            h₁ · d₁
+                          </text>
+                        </g>
+                        <g
+                          id="rr-token-packet"
+                          class="rr-packet rr-token-packet"
+                          opacity="0"
+                        >
+                          <rect
+                            x="-23"
+                            y="-16"
+                            width="46"
+                            height="32"
+                            rx="7"
+                          ></rect>
+                          <text class="rr-packet-text" y="5" text-anchor="middle">
+                            d₁₁
+                          </text>
+                        </g>
+                        <g
+                          id="rr-kv-packet"
+                          class="rr-packet rr-kv-packet"
+                          opacity="0"
+                        >
+                          <rect
+                            x="-25"
+                            y="-14"
+                            width="50"
+                            height="28"
+                            rx="6"
+                          ></rect>
+                          <text class="rr-packet-text" y="5" text-anchor="middle">
+                            KV
+                          </text>
+                        </g>
+                      </svg>
+                      <div class="rr-controls">
+                        <p id="rr-caption">
+                          Record each cycle, then reconstruct its draft path.
+                        </p>
+                        <div class="rr-buttons">
+                          <button
+                            id="rr-play"
+                            type="button"
+                            aria-label="Pause reconstruction animation"
+                          >
+                            <svg viewBox="0 0 20 20" aria-hidden="true">
+                              <path
+                                id="rr-play-icon"
+                                d="M5 4h3v12H5ZM12 4h3v12h-3Z"
+                              ></path></svg
+                            ><span id="rr-play-label">Pause</span></button
+                          ><button
+                            id="rr-next"
+                            type="button"
+                            aria-label="Next reconstruction step"
+                            title="Next step"
+                          >
+                            <svg viewBox="0 0 20 20" aria-hidden="true">
+                              <path d="m5 4 8 6-8 6ZM15 4v12"></path>
+                            </svg></button
+                          ><button
+                            id="rr-replay"
+                            type="button"
+                            aria-label="Replay reconstruction animation"
+                            title="Replay animation"
+                          >
+                            <svg viewBox="0 0 20 20" aria-hidden="true">
+                              <path d="M4 7a7 7 0 1 1-1 6M4 2v5h5"></path>
+                            </svg>
+                          </button>
+                          <select
+                            id="rr-speed"
+                            aria-label="Reconstruction playback speed"
+                            title="Playback speed"
+                          >
+                            <option value="0.25">0.25×</option>
+                            <option value="0.5">0.5×</option>
+                            <option value="0.75">0.75×</option>
+                            <option value="1" selected>1×</option>
+                            <option value="1.5">1.5×</option>
+                            <option value="2">2×</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="rr-timeline">
+                        <input
+                          id="rr-progress"
+                          type="range"
+                          min="0"
+                          max="27000"
+                          step="10"
+                          value="0"
+                          aria-label="Reconstruction progress"
+                          aria-valuetext="0.0 of 27.0 seconds"
+                        />
+                        <span id="rr-time" aria-hidden="true">0.0 / 27.0 s</span>
+                      </div>
+                      <figcaption id="rr-figure-caption">
+                        <span><i class="rr-key-prefix"></i> Target-derived</span
+                        ><span><i class="rr-key-draft"></i> Reconstructed</span
+                        ><span
+                          ><i class="rr-key-masked"></i> Gray pairs: VGM
+                          masked</span
+                        >
+                      </figcaption>
+                      <noscript
+                        ><p>
+                          Enable JavaScript to follow the recorded cycles and their
+                          reconstruction.
+                        </p></noscript
+                      >
+                    </figure>
+                  </div>
+                </div>
+                <div id="method-gradients" class="method-gradient-strip" role="group"
+                  aria-labelledby="method-gradients-title">
+                  <span id="method-gradients-title" class="sr-only">Detached updates</span>
+                  <div class="method-gradient-head"><span>Head loss</span><span aria-hidden="true">→</span><strong>Draft head φ</strong></div>
+                  <div class="method-gradient-policy"><span>RL loss</span><span aria-hidden="true">→</span><strong>Policy θ</strong></div>
+                  <p>Backbone features are detached from head training.</p>
+                </div>
+              </div>
+              <div id="method-pipeline" class="module-panel method-pipeline-content"
+                    role="tabpanel" aria-labelledby="method-pipeline-tab" tabindex="0"
+                    data-title="Pipeline" hidden>
+                <h3>The full training pipeline</h3>
+                <button
+                  class="zoom-figure"
+                  data-zoom="assets/figures/pipeline.webp"
+                  data-title="The GrowMTP pipeline"
+                  aria-label="Enlarge the GrowMTP pipeline"
+                >
+                  <img
+                    src="assets/figures/pipeline.webp"
+                    loading="lazy"
+                    width="2400"
+                    height="820"
+                    alt="Rollout and update pipeline. Policy and draft head follow separate loss paths; recorded drafts and target logits feed reconstruction, VGM, and DCA."
+                  />
+                </button>
+                
+                
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="growth" class="research-section rq-section" aria-labelledby="growth-title">
+        <div class="wide">
+          <div class="module-deck rq1-deck" data-module-group="growth">
+            <div class="section-intro rq1-intro">
+              <div class="section-label"><span>05</span> From Scratch Evaluation</div>
+              <h2 id="growth-title">Can RL grow its own draft head from scratch?</h2>
+            </div>
+            <div class="rq1-summary">
+              <p>A randomly initialized head accelerates the same RL run, with head-update costs included.</p>
+              <p class="rq1-setting">Qwen3-4B · Random draft head, K=5 · 500 RL steps · 8 × H800</p>
+            </div>
+            <div class="module-tabs rq1-tabs" role="tablist" aria-label="RQ1 results">
+              <button id="growth-online-tab" type="button" role="tab" aria-controls="growth-online" aria-selected="true" tabindex="0">Training Curve</button>
+              <button id="rq1-training-tab" type="button" role="tab" aria-controls="rq1-training" aria-selected="false" tabindex="-1">Training Evaluation</button>
+              <button id="rq1-inference-tab" type="button" role="tab" aria-controls="rq1-inference" aria-selected="false" tabindex="-1">Inference Evaluation</button>
+              <button id="growth-cost-tab" type="button" role="tab" aria-controls="growth-cost" aria-selected="false" tabindex="-1">Vs. Offline</button>
+            </div>
+            <div class="module-panels rq1-panels">
+              <div id="growth-online" class="module-panel" role="tabpanel" aria-labelledby="growth-online-tab" tabindex="0" data-title="Training Curve">
+                <div class="training-demo" id="growth-demo" data-demo="growth">
+                  <div class="training-toolbar">
+                    <div><strong>A draft head grows inside RL</strong><p>Math: DAPO-Math-17K · Code: TACO-Verified</p></div>
+                    <div class="step-readout"><span>RL TRAINING STEP</span><strong id="training-step">500<span> / 500</span></strong></div>
+                  </div>
+                  <div class="training-charts">
+                    <figure aria-labelledby="acceptance-heading">
+                      <div class="chart-heading"><h3 id="acceptance-heading">Math</h3><span>Acceptance length τ</span></div>
+                      <div id="acceptance-chart" class="training-chart"></div>
+                    </figure>
+                    <figure aria-labelledby="time-heading">
+                      <div class="chart-heading"><h3 id="time-heading">Math</h3><span>End-to-end step time (s)</span></div>
+                      <div id="time-chart" class="training-chart"></div>
+                    </figure>
+                    <figure aria-labelledby="code-acceptance-heading">
+                      <div class="chart-heading"><h3 id="code-acceptance-heading">Code</h3><span>Acceptance length τ</span></div>
+                      <div id="code-acceptance-chart" class="training-chart"></div>
+                    </figure>
+                    <figure aria-labelledby="code-time-heading">
+                      <div class="chart-heading"><h3 id="code-time-heading">Code</h3><span>End-to-end step time (s)</span></div>
+                      <div id="code-time-chart" class="training-chart"></div>
+                    </figure>
+                  </div>
+                  <div class="training-legend">
+                    <span><i class="line-key ours-line"></i> GrowMTP</span>
+                    <span><i class="line-key baseline-line"></i> AR RL</span>
+                    <span>Solid: plotted trend · Faint: plotted variability</span>
+                  </div>
+                  <div class="playback light">
+                    <button class="play-toggle" type="button" aria-label="Play Math and Code training curves"><span aria-hidden="true">▶</span> Play</button>
+                    <button class="replay" type="button" aria-label="Replay all four training curves">↻</button>
+                    <input class="timeline" aria-label="Shared RL training step for all four curves" type="range" min="1" max="500" value="500" />
+                    <span class="frame-counter">500 / 500</span>
+                  </div>
+                  <div class="rq1-phase">
+                    <strong id="growth-phase-title">500 steps: a useful head, grown from scratch.</strong>
+                  </div>
+                  <noscript><p class="rq1-note">The animated curves require JavaScript. <a href="assets/GrowMTP.pdf" target="_blank" rel="noopener">View Figures 5 and 6 in the paper.</a></p></noscript>
+                </div>
+                <p class="rq1-note">Single-step time crosses below AR at step 30 on Math and step 22 on Code. These are per-step crossovers.</p>
+                
+              </div>
+              <div id="rq1-training" class="module-panel" role="tabpanel" aria-labelledby="rq1-training-tab" tabindex="0" data-title="Training Evaluation" hidden>
+<section class="rq1-data-block" aria-labelledby="rq1-math-training-title">
+                  <h3 id="rq1-math-training-title">Math</h3>
+                  <div class="table-scroll" tabindex="0" role="region" aria-label="Math training evaluation table">
+                    <table class="rq1-training-table">
+                      <caption>DAPO-Math-17K · 500 RL steps</caption>
+                      <thead>
+                        <tr><th scope="col" rowspan="2">Method</th><th scope="col" rowspan="2">K</th><th scope="col" rowspan="2">τ</th><th scope="colgroup" colspan="2">Rollout</th><th scope="colgroup" colspan="2">End-to-end step</th></tr>
+                        <tr><th scope="col">Time (s)</th><th scope="col">Speedup</th><th scope="col">Time (s)</th><th scope="col">Speedup</th></tr>
+                      </thead>
+                      <tbody><tr><th scope="row">AR RL</th><td>0</td><td>1.00</td><td>523.86</td><td>1.00×</td><td>723.51</td><td>1.00×</td></tr><tr class="rq1-ours"><th scope="row">GrowMTP</th><td>5</td><td>2.91</td><td>245.95</td><td>2.13×</td><td>452.53</td><td>1.60×</td></tr></tbody>
+                    </table>
+                  </div>
+                </section>
+<section class="rq1-data-block" aria-labelledby="rq1-code-training-title">
+                  <h3 id="rq1-code-training-title">Code</h3>
+                  <div class="table-scroll" tabindex="0" role="region" aria-label="Code training evaluation table">
+                    <table class="rq1-training-table">
+                      <caption>TACO-Verified · 500 RL steps</caption>
+                      <thead>
+                        <tr><th scope="col" rowspan="2">Method</th><th scope="col" rowspan="2">K</th><th scope="col" rowspan="2">τ</th><th scope="colgroup" colspan="2">Rollout</th><th scope="colgroup" colspan="2">End-to-end step</th></tr>
+                        <tr><th scope="col">Time (s)</th><th scope="col">Speedup</th><th scope="col">Time (s)</th><th scope="col">Speedup</th></tr>
+                      </thead>
+                      <tbody><tr><th scope="row">AR RL</th><td>0</td><td>1.00</td><td>771.22</td><td>1.00×</td><td>1028.39</td><td>1.00×</td></tr><tr class="rq1-ours"><th scope="row">GrowMTP</th><td>5</td><td>2.64</td><td>398.65</td><td>1.93×</td><td>659.39</td><td>1.56×</td></tr></tbody>
+                    </table>
+                  </div>
+                </section>
+                
+              </div>
+              <div id="rq1-inference" class="module-panel" role="tabpanel" aria-labelledby="rq1-inference-tab" tabindex="0" data-title="Inference Evaluation" hidden>
+                <p class="rq1-panel-lead">Held-out policy quality remains comparable, while acceptance carries over to new prompts in each training domain.</p>
+                <div class="rq1-inference-grid">
+<section class="rq1-data-block" aria-labelledby="rq1-math-inference-title">
+                    <h3 id="rq1-math-inference-title">Math</h3>
+                    <div class="table-scroll" tabindex="0" role="region" aria-label="Math inference evaluation table">
+                      <table class="rq1-inference-table">
+                        <caption>Mean@16 (%) and held-out acceptance τ</caption>
+                        <thead>
+                          <tr><th scope="col" rowspan="2">Benchmark</th><th scope="colgroup" colspan="2">AR RL · K=0</th><th scope="colgroup" colspan="2">GrowMTP · K=5</th></tr>
+                          <tr><th scope="col">Mean@16</th><th scope="col">τ</th><th scope="col">Mean@16</th><th scope="col">τ</th></tr>
+                        </thead>
+                        <tbody><tr><th scope="row">AMC23</th><td>62.81</td><td>1.00</td><td class="rq1-value-ours">64.69</td><td class="rq1-value-ours">2.33</td></tr><tr><th scope="row">AIME24</th><td>20.42</td><td>1.00</td><td class="rq1-value-ours">20.42</td><td class="rq1-value-ours">2.34</td></tr><tr><th scope="row">AIME25</th><td>18.75</td><td>1.00</td><td class="rq1-value-ours">21.04</td><td class="rq1-value-ours">2.30</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+<section class="rq1-data-block" aria-labelledby="rq1-code-inference-title">
+                    <h3 id="rq1-code-inference-title">Code</h3>
+                    <div class="table-scroll" tabindex="0" role="region" aria-label="Code inference evaluation table">
+                      <table class="rq1-inference-table">
+                        <caption>Pass@4 (%) and held-out acceptance τ</caption>
+                        <thead>
+                          <tr><th scope="col" rowspan="2">Benchmark</th><th scope="colgroup" colspan="2">AR RL · K=0</th><th scope="colgroup" colspan="2">GrowMTP · K=5</th></tr>
+                          <tr><th scope="col">Pass@4</th><th scope="col">τ</th><th scope="col">Pass@4</th><th scope="col">τ</th></tr>
+                        </thead>
+                        <tbody><tr><th scope="row">AtCoder</th><td>42.19</td><td>1.00</td><td class="rq1-value-ours">43.36</td><td class="rq1-value-ours">2.27</td></tr><tr><th scope="row">LeetCode</th><td>42.79</td><td>1.00</td><td class="rq1-value-ours">43.24</td><td class="rq1-value-ours">2.11</td></tr><tr><th scope="row">LiveCodeBench</th><td>42.37</td><td>1.00</td><td class="rq1-value-ours">43.51</td><td class="rq1-value-ours">2.22</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                </div>
+                
+              </div>
+              <div id="growth-cost" class="module-panel" role="tabpanel" aria-labelledby="growth-cost-tab" tabindex="0" data-title="Vs. Offline" hidden>
+                <h3 class="question">Comparable acceptance, lower total compute.</h3>
+                <p class="rq1-panel-lead">At nearly the same acceptance (2.92 vs. 2.91), GrowMTP uses <strong>9.4% less total compute</strong> than the offline-trained route over 500 RL steps.</p>
+                <figure class="rq1-bill" aria-labelledby="rq1-bill-title">
+                  <div class="rq1-bill-head">
+                    <h4 id="rq1-bill-title">The full training bill</h4>
+                    <span class="rq1-bill-unit">Total GPU·h <span aria-hidden="true">↓</span></span>
+                  </div>
+                  <ul class="rq1-bill-rows">
+                    <li class="rq1-bill-row" style="--total: 100%">
+                      <span class="rq1-bill-label">AR RL</span>
+                      <span class="rq1-bill-track" aria-hidden="true"><span class="rq1-bill-bar is-baseline"></span></span>
+                      <span class="rq1-bill-value">803.9</span>
+                    </li>
+                    <li class="rq1-bill-row" style="--total: 69.1%; --prep: 29.1%">
+                      <span class="rq1-bill-label">Offline head</span>
+                      <span class="rq1-bill-track" aria-hidden="true"><span class="rq1-bill-bar is-offline"><span class="rq1-bill-prep"></span></span></span>
+                      <span class="rq1-bill-value">555.3</span>
+                    </li>
+                    <li class="rq1-bill-row is-ours" style="--total: 62.5%">
+                      <span class="rq1-bill-label">GrowMTP</span>
+                      <span class="rq1-bill-track" aria-hidden="true"><span class="rq1-bill-bar is-ours"></span></span>
+                      <span class="rq1-bill-value">502.8</span>
+                    </li>
+                  </ul>
+                  <figcaption class="rq1-bill-foot">
+                    <span class="rq1-bill-key"><i class="rq1-bill-hatch" aria-hidden="true"></i> Offline preparation: 161.6 GPU·h</span>
+                    <a href="assets/GrowMTP.pdf" target="_blank" rel="noopener">Table 2 ↗</a>
+                  </figcaption>
+                </figure>
+                
+                
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="strategy" class="research-section rq-section" aria-labelledby="strategy-title">
+        <div class="wide">
+          <div class="module-deck rq1-deck" data-module-group="strategy">
+            <div class="section-intro rq1-intro">
+              <div class="section-label"><span>06</span> Training Strategy</div>
+              <h2 id="strategy-title">How should the draft head be trained online?</h2>
+            </div>
+            <div class="rq1-summary">
+              <p>Detach the head's gradients from the policy, and train it on an objective aligned with acceptance. A rising τ on its own is not evidence of a healthy run.</p>
+              <p class="rq1-setting">Qwen3.5-4B-Base · Pretrained head, K=3 · 200 RL steps · Baseline: the same head frozen</p>
+            </div>
+            <div class="module-tabs rq1-tabs" role="tablist" aria-label="RQ2 training strategy results">
+              <button id="strategy-curve-tab" type="button" role="tab" aria-controls="strategy-curve" aria-selected="true" tabindex="0">Training Curve</button>
+              <button id="rq2-training-tab" type="button" role="tab" aria-controls="rq2-training" aria-selected="false" tabindex="-1">Training Evaluation</button>
+              <button id="rq2-inference-tab" type="button" role="tab" aria-controls="rq2-inference" aria-selected="false" tabindex="-1">Inference Evaluation</button>
+            </div>
+            <div class="module-panels rq1-panels">
+              <div id="strategy-curve" class="module-panel" role="tabpanel" aria-labelledby="strategy-curve-tab" tabindex="0" data-title="Training Curve">
+                <p class="rq1-panel-lead">Acceptance and policy quality on the same 200-step timeline. Read them together: the arm with the highest τ is the one whose quality goes to zero.</p>
+                <div class="rq2-figure-deck">
+                  <div class="rq2-legend-bar" role="img" aria-label="Curve legend: grey is the frozen head, amber is joint CE, blue is detached CE, green is detached DCA, which is GrowMTP">
+                    <span class="rq2-key"><i class="rq2-swatch is-frozen"></i> Frozen</span>
+                    <span class="rq2-key"><i class="rq2-swatch is-joint"></i> Joint w/ CE</span>
+                    <span class="rq2-key"><i class="rq2-swatch is-detach"></i> Detach w/ CE</span>
+                    <span class="rq2-key is-ours"><i class="rq2-swatch is-ours"></i> Detach w/ DCA (GrowMTP)</span>
+                    
+                  </div>
+                  <figure class="rq2-figure">
+                    <figcaption class="rq2-figure-head">
+                      <h3>Math reasoning</h3>
+                      <span>DAPO-Math-17K</span>
+                    </figcaption>
+                    <button class="zoom-figure rq2-figure-zoom" data-zoom="assets/figures/rq2-strategy-math.webp" data-title="Math reasoning: four training strategies" aria-label="Enlarge Figure 7, math reasoning training strategies">
+                      <img src="assets/figures/rq2-strategy-math.webp" loading="lazy" width="3265" height="786" alt="Four panels over 200 math RL steps. Acceptance length: joint CE rises highest to about 4.0, detached DCA to about 3.2, detached CE to about 3.2, frozen flat near 2.65. Step time: detached DCA lowest at the end, joint CE rising above the frozen head. Pass@1 and Pass@8: the frozen and both detached arms stay level, joint CE falls to zero." />
+                    </button>
+                  </figure>
+                  <figure class="rq2-figure">
+                    <figcaption class="rq2-figure-head">
+                      <h3>Code reasoning</h3>
+                      <span>TACO-Verified</span>
+                    </figcaption>
+                    <button class="zoom-figure rq2-figure-zoom" data-zoom="assets/figures/rq2-strategy-code.webp" data-title="Code reasoning: four training strategies" aria-label="Enlarge Figure 8, code reasoning training strategies">
+                      <img src="assets/figures/rq2-strategy-code.webp" loading="lazy" width="3265" height="786" alt="The same four panels over 200 code RL steps. Joint CE reaches the lowest step time of the four while its Pass@1 and Pass@8 swing and then fall in the final steps. The frozen and both detached arms keep level quality, with detached DCA holding the highest acceptance among them." />
+                    </button>
+                  </figure>
+                  
+                </div>
+                
+                
+              </div>
+              <div id="rq2-training" class="module-panel" role="tabpanel" aria-labelledby="rq2-training-tab" tabindex="0" data-title="Training Evaluation" hidden>
+                <p class="rq1-panel-lead">Both detached arms accelerate the run. Among the strategies that keep the policy intact, DCA leads every training-side column.</p>
+                <section class="rq1-data-block" aria-labelledby="rq2-math-training-title">
+                  <h3 id="rq2-math-training-title">Math</h3>
+                  <div class="table-scroll" tabindex="0" role="region" aria-label="Math training evaluation across training strategies">
+                    <table class="rq1-training-table rq2-strategy-table">
+                      <caption>DAPO-Math-17K · 200 RL steps · K=3 · Speedups relative to the frozen head</caption>
+                      <thead>
+                        <tr><th scope="col" rowspan="2">Training mode</th><th scope="col" rowspan="2">Loss</th><th scope="col" rowspan="2">τ</th><th scope="colgroup" colspan="2">Rollout</th><th scope="colgroup" colspan="2">End-to-end step</th></tr>
+                        <tr><th scope="col">Time (s)</th><th scope="col">Speedup</th><th scope="col">Time (s)</th><th scope="col">Speedup</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr><th scope="row">Frozen</th><td>–</td><td>2.65</td><td>357.62</td><td>1.00×</td><td>554.42</td><td>1.00×</td></tr>
+                        <tr class="rq2-collapsed"><th scope="row">Joint <span class="rq2-flag">collapsed</span></th><td>CE</td><td>3.99</td><td>372.87</td><td>0.96×</td><td>643.76</td><td>0.86×</td></tr>
+                        <tr><th scope="row">Detached</th><td>CE</td><td>3.18</td><td>277.14</td><td>1.29×</td><td>507.91</td><td>1.09×</td></tr>
+                        <tr class="rq1-ours"><th scope="row">Detached</th><td>DCA</td><td>3.22</td><td>263.86</td><td>1.36×</td><td>461.56</td><td>1.20×</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+                <section class="rq1-data-block" aria-labelledby="rq2-code-training-title">
+                  <h3 id="rq2-code-training-title">Code</h3>
+                  <div class="table-scroll" tabindex="0" role="region" aria-label="Code training evaluation across training strategies">
+                    <table class="rq1-training-table rq2-strategy-table">
+                      <caption>TACO-Verified · 200 RL steps · K=3 · Speedups relative to the frozen head</caption>
+                      <thead>
+                        <tr><th scope="col" rowspan="2">Training mode</th><th scope="col" rowspan="2">Loss</th><th scope="col" rowspan="2">τ</th><th scope="colgroup" colspan="2">Rollout</th><th scope="colgroup" colspan="2">End-to-end step</th></tr>
+                        <tr><th scope="col">Time (s)</th><th scope="col">Speedup</th><th scope="col">Time (s)</th><th scope="col">Speedup</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr><th scope="row">Frozen</th><td>–</td><td>2.59</td><td>500.09</td><td>1.00×</td><td>778.54</td><td>1.00×</td></tr>
+                        <tr class="rq2-collapsed"><th scope="row">Joint <span class="rq2-flag">collapsed</span></th><td>CE</td><td>3.42</td><td>258.34</td><td>1.94×</td><td>411.88</td><td>1.89×</td></tr>
+                        <tr><th scope="row">Detached</th><td>CE</td><td>3.06</td><td>426.88</td><td>1.17×</td><td>719.40</td><td>1.08×</td></tr>
+                        <tr class="rq1-ours"><th scope="row">Detached</th><td>DCA</td><td>3.11</td><td>408.89</td><td>1.22×</td><td>694.00</td><td>1.12×</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+                
+              </div>
+              <div id="rq2-inference" class="module-panel" role="tabpanel" aria-labelledby="rq2-inference-tab" tabindex="0" data-title="Inference Evaluation" hidden>
+                <p class="rq1-panel-lead">Quality separates the strategies. DCA reaches the highest τ on all six benchmarks among the arms that keep their policy; joint CE scores <strong>0.00</strong> on every one.</p>
+                <div class="rq2-inference-stack">
+                  <section class="rq1-data-block" aria-labelledby="rq2-math-inference-title">
+                    <h3 id="rq2-math-inference-title">Math</h3>
+                    <div class="rq2-table-frame">
+                      <table class="rq2-inference-table">
+                        <caption>Mean@16 (%) and held-out acceptance τ</caption>
+                        <thead>
+                          <tr><th scope="col" rowspan="2">Strategy</th><th scope="colgroup" colspan="2">AMC23</th><th scope="colgroup" colspan="2">AIME24</th><th scope="colgroup" colspan="2">AIME25</th></tr>
+                          <tr><th scope="col">Mean@16</th><th scope="col">τ</th><th scope="col">Mean@16</th><th scope="col">τ</th><th scope="col">Mean@16</th><th scope="col">τ</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><th scope="row">Frozen</th><td>80.47</td><td>2.61</td><td>55.00</td><td>2.57</td><td>46.67</td><td>2.57</td></tr>
+                          <tr class="rq2-collapsed"><th scope="row">Joint CE</th><td class="rq2-zero">0.00</td><td>3.99</td><td class="rq2-zero">0.00</td><td>3.99</td><td class="rq2-zero">0.00</td><td>3.99</td></tr>
+                          <tr><th scope="row">Detached CE</th><td>84.69</td><td>3.19</td><td>57.92</td><td>3.10</td><td>52.50</td><td>3.10</td></tr>
+                          <tr class="rq1-ours"><th scope="row">Detached DCA</th><td>85.78</td><td>3.31</td><td>59.58</td><td>3.23</td><td>51.46</td><td>3.22</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                  <section class="rq1-data-block" aria-labelledby="rq2-code-inference-title">
+                    <h3 id="rq2-code-inference-title">Code</h3>
+                    <div class="rq2-table-frame">
+                      <table class="rq2-inference-table">
+                        <caption>Pass@4 (%) and held-out acceptance τ</caption>
+                        <thead>
+                          <tr><th scope="col" rowspan="2">Strategy</th><th scope="colgroup" colspan="2">AtCoder</th><th scope="colgroup" colspan="2">LeetCode</th><th scope="colgroup" colspan="2">LiveCodeBench</th></tr>
+                          <tr><th scope="col">Pass@4</th><th scope="col">τ</th><th scope="col">Pass@4</th><th scope="col">τ</th><th scope="col">Pass@4</th><th scope="col">τ</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><th scope="row">Frozen</th><td>63.29</td><td>2.52</td><td>72.52</td><td>2.52</td><td>67.39</td><td>2.52</td></tr>
+                          <tr class="rq2-collapsed"><th scope="row">Joint CE</th><td class="rq2-zero">0.00</td><td>3.98</td><td class="rq2-zero">0.00</td><td>3.98</td><td class="rq2-zero">0.00</td><td>3.98</td></tr>
+                          <tr><th scope="row">Detached CE</th><td>61.63</td><td>3.15</td><td>71.40</td><td>3.13</td><td>65.97</td><td>3.14</td></tr>
+                          <tr class="rq1-ours"><th scope="row">Detached DCA</th><td>63.29</td><td>3.22</td><td>70.50</td><td>3.22</td><td>66.54</td><td>3.22</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                </div>
+                
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <section id="depth" class="research-section rq-section" aria-labelledby="depth-title">
+        <div class="wide">
+          <div class="module-deck rq1-deck" data-module-group="depth">
+            <div class="section-intro rq1-intro">
+              <div class="section-label"><span>06</span> · DRAFTING DEPTH</div>
+              <h2 id="depth-title">How far should the draft head look ahead?</h2>
+            </div>
+            <div class="rq1-summary">
+              <p>GrowMTP extends a single-step head to multi-step drafting. Acceptance increases with depth, while end-to-end speedup peaks at K=5 in this setting.</p>
+              <p class="rq1-setting">MiMo-7B-SFT · Pretrained single-step head · K=3, 5, 7 · 200 RL steps · Baseline: frozen K=1</p>
+            </div>
+            <div class="module-tabs rq1-tabs" role="tablist" aria-label="RQ2 drafting depth results">
+              <button id="depth-curve-tab" type="button" role="tab" aria-controls="depth-curve" aria-selected="true" tabindex="0">Training Curve</button>
+              <button id="depth-training-tab" type="button" role="tab" aria-controls="depth-training" aria-selected="false" tabindex="-1">Training Evaluation</button>
+              <button id="depth-inference-tab" type="button" role="tab" aria-controls="depth-inference" aria-selected="false" tabindex="-1">Inference Evaluation</button>
+            </div>
+            <div class="module-panels rq1-panels">
+              <div id="depth-curve" class="module-panel" role="tabpanel" aria-labelledby="depth-curve-tab" tabindex="0" data-title="Training Curve">
+                <p class="rq1-panel-lead">Deeper drafting yields higher acceptance throughout training. Step time improves across all trained depths, but its ranking does not follow τ.</p>
+                <div class="rq2-figure-deck">
+                  <figure class="rq2-figure">
+                    <figcaption class="rq2-figure-head"><h3>Scaling drafting depth</h3></figcaption>
+                    <button class="zoom-figure rq2-figure-zoom" data-zoom="assets/figures/rq2-depth.png" data-title="Figure 9: drafting depth on MiMo-7B-SFT" aria-label="Enlarge Figure 9, drafting depth training curves">
+                      <img src="assets/figures/rq2-depth.png" loading="lazy" width="1680" height="490" alt="Figure 9. Four panels show acceptance length and end-to-end step time for Math and Code over 200 RL steps. Frozen K=1 is grey, K=3 amber, K=5 blue, and K=7 teal. Acceptance increases with depth; the three trained step-time curves converge well below the frozen baseline." />
+                    </button>
+                  </figure>
+                  
+                </div>
+                
+                
+              </div>
+              <div id="depth-training" class="module-panel" role="tabpanel" aria-labelledby="depth-training-tab" tabindex="0" data-title="Training Evaluation" hidden>
+                <p class="rq1-panel-lead">K=5 gives the best end-to-end acceleration: 1.41× on Math and 1.35× on Code. K=7 accepts more tokens, but its extra cost reduces the step speedup.</p>
+                <section class="rq1-data-block" aria-labelledby="depth-math-training-title">
+      <h3 id="depth-math-training-title">Math</h3>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Math training evaluation across drafting depths">
+      <table class="rq1-training-table rq2-strategy-table">
+      <caption>DAPO-Math-17K · 200 RL steps · Speedups relative to frozen K=1</caption>
+      <thead><tr><th scope="col" rowspan="2">Method</th><th scope="col" rowspan="2">K</th><th scope="col" rowspan="2">τ</th><th scope="colgroup" colspan="2">Rollout</th><th scope="colgroup" colspan="2">End-to-end step</th></tr>
+      <tr><th scope="col">Time (s)</th><th scope="col">Speedup</th><th scope="col">Time (s)</th><th scope="col">Speedup</th></tr></thead>
+      <tbody><tr><th scope="row">Frozen</th><td>1</td><td>1.65</td><td>318.66</td><td>1.00×</td><td>523.02</td><td>1.00×</td></tr>
+<tr><th scope="row">GrowMTP</th><td>3</td><td>3.25</td><td>176.26</td><td>1.81×</td><td>378.88</td><td>1.38×</td></tr>
+<tr class="rq1-ours"><th scope="row">GrowMTP</th><td>5</td><td>4.04</td><td>164.84</td><td>1.93×</td><td><strong>371.02</strong></td><td><strong>1.41×</strong></td></tr>
+<tr><th scope="row">GrowMTP</th><td>7</td><td>4.38</td><td>171.24</td><td>1.86×</td><td>402.20</td><td>1.30×</td></tr>
+</tbody></table></div></section><section class="rq1-data-block" aria-labelledby="depth-code-training-title">
+      <h3 id="depth-code-training-title">Code</h3>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Code training evaluation across drafting depths">
+      <table class="rq1-training-table rq2-strategy-table">
+      <caption>TACO-Verified · 200 RL steps · Speedups relative to frozen K=1</caption>
+      <thead><tr><th scope="col" rowspan="2">Method</th><th scope="col" rowspan="2">K</th><th scope="col" rowspan="2">τ</th><th scope="colgroup" colspan="2">Rollout</th><th scope="colgroup" colspan="2">End-to-end step</th></tr>
+      <tr><th scope="col">Time (s)</th><th scope="col">Speedup</th><th scope="col">Time (s)</th><th scope="col">Speedup</th></tr></thead>
+      <tbody><tr><th scope="row">Frozen</th><td>1</td><td>1.59</td><td>441.81</td><td>1.00×</td><td>707.42</td><td>1.00×</td></tr>
+<tr><th scope="row">GrowMTP</th><td>3</td><td>3.11</td><td>264.69</td><td>1.67×</td><td>528.64</td><td>1.34×</td></tr>
+<tr class="rq1-ours"><th scope="row">GrowMTP</th><td>5</td><td>3.72</td><td>256.86</td><td>1.72×</td><td><strong>525.31</strong></td><td><strong>1.35×</strong></td></tr>
+<tr><th scope="row">GrowMTP</th><td>7</td><td>4.00</td><td>252.03</td><td>1.75×</td><td>542.02</td><td>1.31×</td></tr>
+</tbody></table></div></section>
+                
+              </div>
+              <div id="depth-inference" class="module-panel" role="tabpanel" aria-labelledby="depth-inference-tab" tabindex="0" data-title="Inference Evaluation" hidden>
+                <p class="rq1-panel-lead">The acceptance gains transfer to held-out benchmarks, with comparable policy quality. Every trained depth reaches τ above 3.0 on all six benchmarks.</p>
+                <div class="rq2-inference-stack"><section class="rq1-data-block" aria-labelledby="depth-math-inference-title">
+      <h3 id="depth-math-inference-title">Math</h3><div class="rq2-table-frame">
+      <table class="rq2-inference-table"><caption>Mean@16 (%) and held-out acceptance τ</caption>
+      <thead><tr><th scope="col" rowspan="2">Drafting depth</th><th scope="colgroup" colspan="2">AMC23</th><th scope="colgroup" colspan="2">AIME24</th><th scope="colgroup" colspan="2">AIME25</th></tr><tr><th scope="col">Mean@16</th><th scope="col">τ</th><th scope="col">Mean@16</th><th scope="col">τ</th><th scope="col">Mean@16</th><th scope="col">τ</th></tr></thead>
+      <tbody><tr><th scope="row">Frozen K=1</th><td>90.47</td><td>1.67</td><td>51.88</td><td>1.64</td><td>43.13</td><td>1.64</td></tr>
+<tr><th scope="row">GrowMTP K=3</th><td>90.47</td><td>3.20</td><td>53.33</td><td>3.15</td><td>42.29</td><td>3.14</td></tr>
+<tr class="rq1-ours"><th scope="row">GrowMTP K=5</th><td>91.25</td><td>3.95</td><td>56.87</td><td>3.84</td><td>46.25</td><td>3.82</td></tr>
+<tr><th scope="row">GrowMTP K=7</th><td>89.69</td><td>4.30</td><td>56.04</td><td>4.11</td><td>43.33</td><td>4.08</td></tr>
+</tbody></table></div></section><section class="rq1-data-block" aria-labelledby="depth-code-inference-title">
+      <h3 id="depth-code-inference-title">Code</h3><div class="rq2-table-frame">
+      <table class="rq2-inference-table"><caption>Pass@4 (%) and held-out acceptance τ</caption>
+      <thead><tr><th scope="col" rowspan="2">Drafting depth</th><th scope="colgroup" colspan="2">AtCoder</th><th scope="colgroup" colspan="2">LeetCode</th><th scope="colgroup" colspan="2">LiveCodeBench</th></tr><tr><th scope="col">Pass@4</th><th scope="col">τ</th><th scope="col">Pass@4</th><th scope="col">τ</th><th scope="col">Pass@4</th><th scope="col">τ</th></tr></thead>
+      <tbody><tr><th scope="row">Frozen K=1</th><td>69.93</td><td>1.61</td><td>80.18</td><td>1.61</td><td>74.50</td><td>1.61</td></tr>
+<tr><th scope="row">GrowMTP K=3</th><td>70.10</td><td>3.02</td><td>78.38</td><td>3.03</td><td>73.84</td><td>3.03</td></tr>
+<tr class="rq1-ours"><th scope="row">GrowMTP K=5</th><td>71.59</td><td>3.59</td><td>78.60</td><td>3.59</td><td>74.69</td><td>3.59</td></tr>
+<tr><th scope="row">GrowMTP K=7</th><td>69.93</td><td>3.83</td><td>76.35</td><td>3.85</td><td>72.80</td><td>3.84</td></tr>
+</tbody></table></div></section></div>
+                
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+<section id="ablations" class="research-section rq-section" aria-labelledby="ablations-title"><div class="wide"><div class="module-deck rq1-deck rq3-deck" data-module-group="ablations">
+<div class="section-intro rq1-intro"><div class="section-label"><span>07</span> · COMPONENT ABLATIONS</div><h2 id="ablations-title">How does each component contribute to multi-step adaptation?</h2></div>
+<div class="rq1-summary"><p>Reconstruction lowers training cost, DCA improves multi-step acceptance, and VGM adds further efficiency by enforcing the rejection boundary.</p><p class="rq1-setting">MiMo-7B-SFT · Math reasoning · Pretrained single-step head · 200 RL steps · K=5, with K=1 also evaluated for DCA</p></div>
+<div class="module-tabs rq1-tabs" role="tablist" aria-label="Component ablations"><button id="ablation-reconstruction-tab" type="button" role="tab" aria-controls="ablation-reconstruction" aria-selected="true" tabindex="0">Draft-Path Reconstruction</button><button id="ablation-dca-tab" type="button" role="tab" aria-controls="ablation-dca" aria-selected="false" tabindex="-1">DCA Loss</button><button id="ablation-vgm-tab" type="button" role="tab" aria-controls="ablation-vgm" aria-selected="false" tabindex="-1">Verify-Gated Masking</button></div>
+<div class="module-panels rq1-panels"><div id="ablation-reconstruction" class="module-panel" role="tabpanel" aria-labelledby="ablation-reconstruction-tab" tabindex="0" data-title="Draft-Path Reconstruction" >
+<p class="rq1-panel-lead">Similar aggregate acceptance, lower training cost. Reconstruction reaches τ=4.04 versus 4.02 for teacher forcing, while reducing end-to-end step time from 408.09s to 371.02s.</p>
+<div class="rq2-figure-deck "><figure class="rq2-figure"><figcaption class="rq2-figure-head"><h3>Full reconstruction ablation</h3></figcaption><button class="zoom-figure rq2-figure-zoom" data-zoom="assets/figures/rq3-reconstruction-full.webp" data-title="Full reconstruction ablation" aria-label="Enlarge Full reconstruction ablation"><img src="assets/figures/rq3-reconstruction-full.webp" width="3307" height="1522" loading="lazy" alt="Eight original plots: acceptance length, step time, actor update time, and acceptance at draft positions 1 through 5." /></button></figure></div>
+
+<section class="rq1-data-block ablation-training-block"><h3>Training evaluation</h3><div class="table-scroll" tabindex="0" role="region" aria-label="dpr training evaluation"><table class="rq1-training-table"><caption>DAPO-Math-17K · 200 RL steps · Speedups relative to frozen K=1</caption><thead><tr><th scope="col" rowspan="2">Configuration</th><th scope="col" rowspan="2">τ</th><th scope="colgroup" colspan="2">Rollout</th><th scope="colgroup" colspan="2">End-to-end step</th></tr><tr><th scope="col">Time (s)</th><th scope="col">Speedup</th><th scope="col">Time (s)</th><th scope="col">Speedup</th></tr></thead><tbody><tr class=""><th scope="row">Teacher forcing</th><td>4.02</td><td>169.05</td><td>1.89×</td><td>408.09</td><td>1.28×</td></tr><tr class="rq1-ours"><th scope="row">GrowMTP</th><td>4.04</td><td>164.84</td><td>1.93×</td><td>371.02</td><td>1.41×</td></tr></tbody></table></div></section>
+
+<section class="rq1-data-block rq3-details"><h3>Inference Evaluation</h3><div class="rq2-table-frame"><table class="rq2-inference-table"><caption>Math reasoning · Mean@16 (%) and held-out acceptance τ</caption><thead><tr><th scope="col" rowspan="2">Configuration</th><th scope="colgroup" colspan="2">AMC23</th><th scope="colgroup" colspan="2">AIME24</th><th scope="colgroup" colspan="2">AIME25</th></tr><tr><th scope="col">Mean@16</th><th scope="col">τ</th><th scope="col">Mean@16</th><th scope="col">τ</th><th scope="col">Mean@16</th><th scope="col">τ</th></tr></thead><tbody><tr class=""><th scope="row">Teacher forcing</th><td>91.56</td><td>3.93</td><td>54.37</td><td>3.82</td><td>43.96</td><td>3.79</td></tr><tr class="rq1-ours"><th scope="row">GrowMTP</th><td>91.25</td><td>3.95</td><td>56.87</td><td>3.84</td><td>46.25</td><td>3.82</td></tr></tbody></table></div></section></div><div id="ablation-dca" class="module-panel" role="tabpanel" aria-labelledby="ablation-dca-tab" tabindex="0" data-title="DCA Loss" hidden>
+<p class="rq1-panel-lead">The acceptance advantage emerges at multi-step depth. At K=1 the four objectives yield similar τ; at K=5, DCA leads in training acceptance, end-to-end speedup, and all three held-out acceptance columns.</p>
+<div class="rq2-figure-deck rq3-pair"><figure class="rq2-figure"><figcaption class="rq2-figure-head"><h3>Single-step vs. multi-step objectives</h3></figcaption><button class="zoom-figure rq2-figure-zoom" data-zoom="assets/figures/rq3-dca.webp" data-title="Single-step vs. multi-step objectives" aria-label="Enlarge Single-step vs. multi-step objectives"><img src="assets/figures/rq3-dca.webp" width="1657" height="821" loading="lazy" alt="Original acceptance curves for CE, KL, TV, and DCA at K=1 on the left and K=5 on the right. The curves are close at K=1; DCA leads at K=5." /></button></figure></div>
+
+<section class="rq1-data-block ablation-training-block"><h3>Training evaluation · K=1 and K=5</h3><div class="table-scroll" tabindex="0" role="region" aria-label="dca training evaluation"><table class="rq1-training-table"><caption>DAPO-Math-17K · 200 RL steps · Speedups relative to frozen K=1</caption><thead><tr><th scope="col" rowspan="2">Configuration</th><th scope="col" rowspan="2">τ</th><th scope="colgroup" colspan="2">Rollout</th><th scope="colgroup" colspan="2">End-to-end step</th></tr><tr><th scope="col">Time (s)</th><th scope="col">Speedup</th><th scope="col">Time (s)</th><th scope="col">Speedup</th></tr></thead><tbody><tr class=""><th scope="row">CE · K=1</th><td>1.84</td><td>274.47</td><td>1.16×</td><td>507.99</td><td>1.03×</td></tr><tr class=""><th scope="row">KL · K=1</th><td>1.81</td><td>288.58</td><td>1.10×</td><td>532.91</td><td>0.98×</td></tr><tr class=""><th scope="row">TV · K=1</th><td>1.83</td><td>288.30</td><td>1.11×</td><td>530.29</td><td>0.99×</td></tr><tr class=""><th scope="row">DCA · K=1</th><td>1.82</td><td>280.58</td><td>1.14×</td><td>517.00</td><td>1.01×</td></tr><tr class="rq3-group-start"><th scope="row">CE · K=5</th><td>3.86</td><td>175.70</td><td>1.81×</td><td>384.22</td><td>1.36×</td></tr><tr class=""><th scope="row">KL · K=5</th><td>3.85</td><td>174.98</td><td>1.82×</td><td>382.41</td><td>1.37×</td></tr><tr class=""><th scope="row">TV · K=5</th><td>3.94</td><td>174.00</td><td>1.83×</td><td>382.69</td><td>1.37×</td></tr><tr class="rq1-ours"><th scope="row">DCA · K=5</th><td>4.04</td><td>164.84</td><td>1.93×</td><td>371.02</td><td>1.41×</td></tr></tbody></table></div></section>
+<section class="rq1-data-block rq3-details"><h3>Inference Evaluation</h3><div class="rq2-table-frame"><table class="rq2-inference-table"><caption>Math reasoning · Mean@16 (%) and held-out acceptance τ</caption><thead><tr><th scope="col" rowspan="2">Configuration</th><th scope="colgroup" colspan="2">AMC23</th><th scope="colgroup" colspan="2">AIME24</th><th scope="colgroup" colspan="2">AIME25</th></tr><tr><th scope="col">Mean@16</th><th scope="col">τ</th><th scope="col">Mean@16</th><th scope="col">τ</th><th scope="col">Mean@16</th><th scope="col">τ</th></tr></thead><tbody><tr class=""><th scope="row">CE · K=1</th><td>90.16</td><td>1.88</td><td>51.67</td><td>1.87</td><td>40.42</td><td>1.87</td></tr><tr class=""><th scope="row">KL · K=1</th><td>90.31</td><td>1.86</td><td>54.37</td><td>1.85</td><td>44.58</td><td>1.84</td></tr><tr class=""><th scope="row">TV · K=1</th><td>89.22</td><td>1.88</td><td>56.04</td><td>1.86</td><td>43.13</td><td>1.86</td></tr><tr class=""><th scope="row">DCA · K=1</th><td>89.53</td><td>1.87</td><td>53.96</td><td>1.85</td><td>36.88</td><td>1.86</td></tr><tr class="rq3-group-start"><th scope="row">CE · K=5</th><td>89.84</td><td>3.81</td><td>54.17</td><td>3.67</td><td>43.54</td><td>3.66</td></tr><tr class=""><th scope="row">KL · K=5</th><td>89.69</td><td>3.67</td><td>53.75</td><td>3.53</td><td>42.29</td><td>3.51</td></tr><tr class=""><th scope="row">TV · K=5</th><td>89.53</td><td>3.80</td><td>55.00</td><td>3.67</td><td>40.83</td><td>3.66</td></tr><tr class="rq1-ours"><th scope="row">DCA · K=5</th><td>91.25</td><td>3.95</td><td>56.87</td><td>3.84</td><td>46.25</td><td>3.82</td></tr></tbody></table></div></section></div><div id="ablation-vgm" class="module-panel" role="tabpanel" aria-labelledby="ablation-vgm-tab" tabindex="0" data-title="Verify-Gated Masking" hidden>
+<p class="rq1-panel-lead">Masking post-rejection positions improves end-to-end efficiency under both objectives. With VGM, step speedup rises from 1.28× to 1.37× under KL, and from 1.35× to 1.41× under DCA.</p>
+<div class="rq2-figure-deck rq3-pair"><figure class="rq2-figure"><figcaption class="rq2-figure-head"><h3>Enforcing the rejection boundary</h3></figcaption><button class="zoom-figure rq2-figure-zoom" data-zoom="assets/figures/rq3-vgm.webp" data-title="Enforcing the rejection boundary" aria-label="Enlarge Enforcing the rejection boundary"><img src="assets/figures/rq3-vgm.webp" width="1657" height="821" loading="lazy" alt="Original acceptance curves with and without VGM: KL on the left, DCA on the right. Removing the mask lowers acceptance under both objectives." /></button></figure></div>
+
+<section class="rq1-data-block ablation-training-block"><h3>Training evaluation · VGM off / on</h3><div class="table-scroll" tabindex="0" role="region" aria-label="vgm training evaluation"><table class="rq1-training-table"><caption>DAPO-Math-17K · 200 RL steps · Speedups relative to frozen K=1</caption><thead><tr><th scope="col" rowspan="2">Configuration</th><th scope="col" rowspan="2">τ</th><th scope="colgroup" colspan="2">Rollout</th><th scope="colgroup" colspan="2">End-to-end step</th></tr><tr><th scope="col">Time (s)</th><th scope="col">Speedup</th><th scope="col">Time (s)</th><th scope="col">Speedup</th></tr></thead><tbody><tr class=""><th scope="row">KL · VGM off</th><td>3.80</td><td>186.40</td><td>1.71×</td><td>408.65</td><td>1.28×</td></tr><tr class="rq1-ours"><th scope="row">KL · VGM on</th><td>3.85</td><td>174.98</td><td>1.82×</td><td>382.41</td><td>1.37×</td></tr><tr class="rq3-group-start"><th scope="row">DCA · VGM off</th><td>4.00</td><td>165.97</td><td>1.92×</td><td>387.27</td><td>1.35×</td></tr><tr class="rq1-ours"><th scope="row">DCA · VGM on</th><td>4.04</td><td>164.84</td><td>1.93×</td><td>371.02</td><td>1.41×</td></tr></tbody></table></div></section>
+<section class="rq1-data-block rq3-details"><h3>Inference Evaluation</h3><div class="rq2-table-frame"><table class="rq2-inference-table"><caption>Math reasoning · Mean@16 (%) and held-out acceptance τ</caption><thead><tr><th scope="col" rowspan="2">Configuration</th><th scope="colgroup" colspan="2">AMC23</th><th scope="colgroup" colspan="2">AIME24</th><th scope="colgroup" colspan="2">AIME25</th></tr><tr><th scope="col">Mean@16</th><th scope="col">τ</th><th scope="col">Mean@16</th><th scope="col">τ</th><th scope="col">Mean@16</th><th scope="col">τ</th></tr></thead><tbody><tr class=""><th scope="row">KL · VGM off</th><td>88.59</td><td>3.66</td><td>54.17</td><td>3.49</td><td>41.04</td><td>3.48</td></tr><tr class="rq1-ours"><th scope="row">KL · VGM on</th><td>89.69</td><td>3.67</td><td>53.75</td><td>3.53</td><td>42.29</td><td>3.51</td></tr><tr class="rq3-group-start"><th scope="row">DCA · VGM off</th><td>89.22</td><td>3.94</td><td>52.92</td><td>3.81</td><td>41.88</td><td>3.79</td></tr><tr class="rq1-ours"><th scope="row">DCA · VGM on</th><td>91.25</td><td>3.95</td><td>56.87</td><td>3.84</td><td>46.25</td><td>3.82</td></tr></tbody></table></div></section></div></div></div></div></section>
+
+
+<section id="discussion" class="research-section rq-section" aria-labelledby="discussion-title">
+  <div class="wide"><div class="module-deck rq1-deck rq3-deck" data-module-group="discussion">
+    <div class="section-intro rq1-intro"><div class="section-label"><span>08</span> DISCUSSION</div><h2 id="discussion-title">Where does GrowMTP help, and how far can it scale?</h2></div>
+    <div class="rq1-summary"><p>Three model starting points, the potential of larger RL runs, and the domain specialization of an online-trained head.</p></div>
+    <div class="module-tabs rq1-tabs" role="tablist" aria-label="Discussion topics">
+      <button id="discussion-models-tab" type="button" role="tab" aria-controls="discussion-models" aria-selected="true" tabindex="0">Model Applicability</button>
+      <button id="discussion-scale-tab" type="button" role="tab" aria-controls="discussion-scale" aria-selected="false" tabindex="-1">Scaling Potential</button>
+      <button id="discussion-domain-tab" type="button" role="tab" aria-controls="discussion-domain" aria-selected="false" tabindex="-1">Domain Specialization</button>
+    </div>
+    <div class="module-panels rq1-panels">
+      <div id="discussion-models" class="module-panel" role="tabpanel" aria-labelledby="discussion-models-tab" tabindex="0" data-title="Model Applicability">
+        <p class="rq1-panel-lead">GrowMTP adapts to different starting points, from a randomly initialized head to pretrained draft heads. The three evaluated models all gain end-to-end acceleration on mathematical reasoning.</p>
+        <div class="discussion-models"><article class="discussion-model"><p class="discussion-eyebrow">Random initialization</p><h3>Qwen3-4B</h3><p class="discussion-speed">1.60×</p><p class="discussion-metric">End-to-end step speedup</p><p class="discussion-card-setting">K=5 · 500 RL steps</p><p class="discussion-baseline"><strong>Baseline</strong><br>Autoregressive decoding</p></article><article class="discussion-model"><p class="discussion-eyebrow">Pretrained single-step head</p><h3>MiMo-7B-SFT</h3><p class="discussion-speed">1.41×</p><p class="discussion-metric">End-to-end step speedup</p><p class="discussion-card-setting">K=5 · 200 RL steps</p><p class="discussion-baseline"><strong>Baseline</strong><br>Frozen pretrained head, K=1</p></article><article class="discussion-model"><p class="discussion-eyebrow">Pretrained head</p><h3>Qwen3.5-4B-Base</h3><p class="discussion-speed">1.20×</p><p class="discussion-metric">End-to-end step speedup</p><p class="discussion-card-setting">K=3 · 200 RL steps</p><p class="discussion-baseline"><strong>Baseline</strong><br>Frozen pretrained head, K=3</p></article></div>
+        
+        
+        
+      </div>
+      <div id="discussion-scale" class="module-panel" role="tabpanel" aria-labelledby="discussion-scale-tab" tabindex="0" data-title="Scaling Potential" hidden>
+        <p class="rq1-panel-lead">Longer rollouts and longer runs could increase end-to-end speedup by increasing rollout’s share of runtime and amortizing early head-training overhead.</p>
+        <div class="discussion-scale-grid">
+          <div class="discussion-scale-copy"><p class="discussion-eyebrow">Projection from one measured run</p><h3>More rollout work.<br>More time to amortize growth.</h3><p class="discussion-prose">The Qwen3-4B Math run measures <strong>1.60×</strong> at 500 steps and an 8K rollout length. Under the paper’s assumptions, the projection reaches <strong>1.91×</strong> at 1,000 steps / 16K and <strong>2.17×</strong> at 2,000 steps / 32K.</p><p class="rq1-setting">Qwen3-4B · DAPO-Math-17K · K=5 · AR baseline</p></div>
+          <div class="table-scroll" tabindex="0" role="region" aria-label="Measured and projected speedup matrix"><table class="discussion-matrix"><thead><tr><th scope="col">RL steps</th><th scope="col">8K rollout</th><th scope="col">16K rollout</th><th scope="col">32K rollout</th></tr></thead><tbody><tr><th scope="row">500</th><td class="is-measured" style="--cell-tint:0.04"><strong>1.60×</strong><span>Measured</span></td><td class="is-projected" style="--cell-tint:0.083"><strong>1.79×</strong><span>Projected</span></td><td class="is-projected" style="--cell-tint:0.115"><strong>1.93×</strong><span>Projected</span></td></tr><tr><th scope="row">1,000</th><td class="is-projected" style="--cell-tint:0.063"><strong>1.70×</strong><span>Projected</span></td><td class="is-projected" style="--cell-tint:0.111"><strong>1.91×</strong><span>Projected</span></td><td class="is-projected" style="--cell-tint:0.149"><strong>2.08×</strong><span>Projected</span></td></tr><tr><th scope="row">2,000</th><td class="is-projected" style="--cell-tint:0.076"><strong>1.76×</strong><span>Projected</span></td><td class="is-projected" style="--cell-tint:0.129"><strong>1.99×</strong><span>Projected</span></td><td class="is-projected" style="--cell-tint:0.17"><strong>2.17×</strong><span>Projected</span></td></tr></tbody></table></div>
+        </div>
+        
+        
+      </div>
+      <div id="discussion-domain" class="module-panel" role="tabpanel" aria-labelledby="discussion-domain-tab" tabindex="0" data-title="Domain Specialization" hidden>
+        <p class="rq1-panel-lead">The grown head specializes to the rollout distribution it learns from. Acceptance falls on held-out data and drops further across domains.</p>
+        <p class="rq1-setting">Qwen3-4B · K=5 · Two heads grown from scratch for 500 RL steps, then frozen for evaluation</p>
+        <section class="rq1-data-block"><h3>From training rollouts to a different domain</h3><div class="table-scroll" tabindex="0" role="region" aria-label="Acceptance within and across domains"><table class="rq1-training-table discussion-domain-table"><caption>Acceptance length τ · Held-out values are the paper’s benchmark averages</caption><thead><tr><th scope="col">Head training domain</th><th scope="col">Training rollout</th><th scope="col">Same-domain evaluation</th><th scope="col">Cross-domain evaluation</th></tr></thead><tbody><tr><th scope="row">Math</th><td>2.91</td><td class="discussion-in-domain">2.32</td><td>1.45</td></tr><tr><th scope="row">Code</th><td>2.64</td><td class="discussion-in-domain">2.20</td><td>1.75</td></tr></tbody></table></div></section>
+        <section class="rq1-data-block"><h3>Math reasoning evaluation</h3><div class="table-scroll" tabindex="0" role="region" aria-label="Math cross-domain acceptance"><table class="rq1-training-table discussion-domain-table"><caption>Held-out acceptance τ · Green cells mark evaluation within the training domain</caption><thead><tr><th scope="col">Draft head</th><th scope="col">AMC23</th><th scope="col">AIME24</th><th scope="col">AIME25</th><th scope="col">Avg.</th></tr></thead><tbody><tr><th scope="row">Math-trained</th><td class="discussion-in-domain">2.33</td><td class="discussion-in-domain">2.34</td><td class="discussion-in-domain">2.30</td><td class="discussion-in-domain">2.32</td></tr><tr><th scope="row">Code-trained</th><td class="">1.80</td><td class="">1.79</td><td class="">1.68</td><td class="">1.75</td></tr></tbody></table></div></section><section class="rq1-data-block"><h3>Code reasoning evaluation</h3><div class="table-scroll" tabindex="0" role="region" aria-label="Code cross-domain acceptance"><table class="rq1-training-table discussion-domain-table"><caption>Held-out acceptance τ · Green cells mark evaluation within the training domain</caption><thead><tr><th scope="col">Draft head</th><th scope="col">AtCoder</th><th scope="col">LeetCode</th><th scope="col">LiveCodeBench</th><th scope="col">Avg.</th></tr></thead><tbody><tr><th scope="row">Math-trained</th><td class="">1.50</td><td class="">1.40</td><td class="">1.46</td><td class="">1.45</td></tr><tr><th scope="row">Code-trained</th><td class="discussion-in-domain">2.27</td><td class="discussion-in-domain">2.11</td><td class="discussion-in-domain">2.22</td><td class="discussion-in-domain">2.20</td></tr></tbody></table></div></section>
+        
+        <section class="rq1-data-block discussion-serving-block"><h3>Does this replace a pretrained draft head?</h3><p class="discussion-prose">A concentrated rollout distribution lets online training grow a useful head for the current RL run. General serving must cover unforeseen deployment distributions; the paper therefore retains a role for pretrained MTP heads. The cross-domain acceptance drop makes this specialization visible.</p></section>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+
+      <section id="conclusion" class="research-section rq-section" aria-labelledby="conclusion-title">
+        <div class="wide">
+          <div class="section-intro rq1-intro">
+            <div class="section-label"><span>09</span> CONCLUSION</div>
+            <h2 id="conclusion-title">Conclusion</h2>
+          </div>
+          <div class="conclusion-cards">
+            <article class="conclusion-card">
+              <h3>Grow From Scratch during RL</h3>
+              <p>A randomly initialized draft head learns entirely within RL, without offline pretraining or warm-up.</p>
+            </article>
+            <article class="conclusion-card">
+              <h3>Accelerate the Same Run</h3>
+              <p>On Qwen3-4B, end-to-end training speeds up by 1.60× on Math and 1.56× on Code, including head updates.</p>
+            </article>
+            <article class="conclusion-card">
+              <h3>Adapt Across Starting Points</h3>
+              <p>Online adaptation improves both random and pretrained heads, with comparable held-out quality in the evaluated runs.</p>
+            </article>
+          </div>
+          <a class="conclusion-paper" href="assets/GrowMTP.pdf" target="_blank" rel="noopener">Read the Paper ↗</a>
+        </div>
+      </section>
+
+    </main>
+    <footer class="site-footer">
+      <div class="wide">
+        <a class="brand" href="#"
+          ><span class="gradient-text">GrowMTP</span></a
+        >
+        <p>WeChat AI, Tencent &amp; Peking University <span>·</span> 2026</p>
+        <a href="#">Back to top ↑</a>
+      </div>
+    </footer>
+    <dialog
+      class="figure-dialog"
+      id="figure-dialog"
+      aria-labelledby="figure-dialog-title"
+    >
+      <div class="dialog-header">
+        <h2 id="figure-dialog-title">Paper figure</h2>
+        <button
+          id="close-figure"
+          type="button"
+          aria-label="Close enlarged figure"
+        >
+          ×
+        </button>
+      </div>
+      <div class="dialog-image"><img id="enlarged-figure" alt="" /></div>
+    </dialog>
+    <noscript
+      ><style>
+        .demo-shell {
+          display: none;
+        }
+        .training-demo {
+          display: none;
+        }
+        .ablation-panel,
+        .schedule-panel,
+        .depth-panel,
+        .quality-panel,
+        .exact-results {
+          display: none;
+        }
+      </style>
+      <p class="noscript-message">
+        Interactive explanations require JavaScript. The article and main Math
+        results remain available.
+        <a href="assets/GrowMTP.pdf" target="_blank" rel="noopener"
+          >Read the paper for all figures and measurements.</a
+        >
+      </p></noscript
+    >
+    <noscript
+      ><style>
+        .modular-page .module-panel[hidden] {
+          display: block !important;
+        }
+        .module-tabs {
+          display: none !important;
+        }
+      </style></noscript
+    >
+  </body>
+</html>

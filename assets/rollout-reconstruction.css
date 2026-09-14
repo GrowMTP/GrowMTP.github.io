@@ -1,0 +1,674 @@
+#reconstruction-demo.rr-figure {
+  max-width: 1040px;
+  margin: 30px auto 0;
+  overflow: hidden;
+  border: 1px solid #dce6e9;
+  border-radius: 10px;
+  background: #fff;
+}
+#reconstruction-demo .rr-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: linear-gradient(
+    180deg,
+    #fff 0%,
+    #fbfdfc 43%,
+    #fff 58%,
+    #f6fbf8 100%
+  );
+}
+#reconstruction-demo .rr-section-title {
+  font: 600 19px var(--display);
+  fill: #37586a;
+  letter-spacing: -0.2px;
+}
+#reconstruction-demo .rr-stage-label {
+  font: 400 12px var(--body);
+  fill: #62798a;
+}
+#reconstruction-demo .rr-small-label {
+  font: 400 12px var(--body);
+  fill: #577080;
+}
+#reconstruction-demo .rr-field-caption {
+  font: 400 10px var(--body);
+  fill: #587184;
+}
+#reconstruction-demo .rr-wire {
+  fill: none;
+  stroke: #b5c8d0;
+  stroke-width: 1.4;
+  marker-end: url(#rr-arrow);
+}
+#reconstruction-demo .rr-green-wire {
+  stroke: #8cb99f;
+}
+#reconstruction-demo .rr-blue-wire {
+  stroke: #8caecf;
+}
+#reconstruction-demo .rr-amber-wire {
+  stroke: #c7ab7e;
+}
+#reconstruction-demo .rr-red-wire {
+  stroke: #ce9290;
+}
+#reconstruction-demo .rr-flow {
+  stroke: #4e9b70;
+  stroke-width: 2;
+}
+#reconstruction-demo .rr-hidden-cell {
+  fill: #eef8f2;
+  stroke: #99bfa8;
+  stroke-width: 1.2;
+}
+#reconstruction-demo .rr-token-cell {
+  fill: #fff;
+  stroke: #c1cfd8;
+  stroke-width: 1.2;
+}
+#reconstruction-demo .rr-value {
+  font: 500 23px var(--display);
+  fill: #3d6253;
+}
+#reconstruction-demo .rr-bundle[data-origin="target"] .rr-hidden-cell {
+  fill: #eaf3ff;
+  stroke: #91b1d4;
+}
+#reconstruction-demo .rr-bundle[data-origin="target"] [data-field="h"] {
+  fill: #3e6e9d;
+}
+#reconstruction-demo .rr-bundle[data-hidden-mismatch="true"] .rr-hidden-cell {
+  fill: #fdebe8;
+  stroke: #bc716c;
+  stroke-width: 1.6;
+}
+#reconstruction-demo .rr-bundle[data-hidden-mismatch="true"] [data-field="h"] {
+  fill: #a04742;
+}
+#reconstruction-demo .rr-wire.rr-hidden-mismatch {
+  stroke: #bc716c;
+}
+#reconstruction-demo .rr-bundle[data-token="replacement"] .rr-token-cell {
+  fill: #fff4df;
+  stroke: #c9a568;
+}
+#reconstruction-demo .rr-bundle[data-token="replacement"] [data-field="d"] {
+  fill: #956329;
+}
+#reconstruction-demo #rr-tf-output .rr-token-cell {
+  fill: #edf7f5;
+  stroke: #94bfb2;
+}
+#reconstruction-demo .rr-module > rect {
+  fill: #f1f9f4;
+  stroke: #86b69b;
+  stroke-width: 1.5;
+}
+#reconstruction-demo .rr-module-title {
+  font: 600 21px var(--display);
+  fill: #366f4c;
+}
+#reconstruction-demo .rr-phi {
+  font:
+    italic 28px Georgia,
+    serif;
+  fill: #4b8962;
+}
+#reconstruction-demo .rr-module.rr-computing > rect {
+  fill: #ddf1e5;
+  stroke: #3d8f5d;
+  stroke-width: 2;
+}
+#reconstruction-demo .rr-tile > rect {
+  fill: #fafcfd;
+  stroke: #c9d6de;
+  stroke-width: 1.2;
+  stroke-dasharray: 3 3;
+}
+#reconstruction-demo .rr-tile > text {
+  font:
+    16px Georgia,
+    serif;
+  fill: #546e80;
+}
+#reconstruction-demo .rr-prefix-tile > rect {
+  fill: #eef4fa;
+  stroke: #c0d2e3;
+  stroke-dasharray: none;
+}
+#reconstruction-demo .rr-prefix-tile > text {
+  font: 12px var(--display);
+  fill: #4a6c8a;
+}
+#reconstruction-demo .rr-written > rect {
+  stroke-dasharray: none;
+}
+#reconstruction-demo .rr-written.rr-kv-target > rect {
+  fill: #e6f0fd;
+  stroke: #8aaed6;
+}
+#reconstruction-demo .rr-written.rr-kv-target > text {
+  fill: #396b9d;
+}
+#reconstruction-demo .rr-written.rr-kv-draft > rect {
+  fill: #e8f5ed;
+  stroke: #86b59b;
+}
+#reconstruction-demo .rr-written.rr-kv-draft > text {
+  fill: #36744f;
+}
+#reconstruction-demo .rr-written.rr-kv-error > rect {
+  fill: #fdebe8;
+  stroke: #bc716c;
+  stroke-width: 1.6;
+}
+#reconstruction-demo .rr-written.rr-kv-error > text {
+  fill: #a04742;
+}
+#reconstruction-demo .rr-kv-reference > rect {
+  stroke: #467fba;
+  stroke-width: 2.4;
+}
+#reconstruction-demo .rr-commit-token.rr-filled > rect {
+  fill: #eaf6ee;
+  stroke: #91bda2;
+  stroke-dasharray: none;
+}
+#reconstruction-demo .rr-commit-token.rr-replacement > rect {
+  fill: #fff0d5;
+  stroke: #d2af75;
+  stroke-dasharray: none;
+}
+#reconstruction-demo .rr-commit-token.rr-replacement > text {
+  fill: #8d6028;
+}
+#reconstruction-demo .rr-source-selected > rect {
+  stroke: #b37f32;
+  stroke-width: 2.4;
+}
+#reconstruction-demo .rr-draft > rect {
+  fill: #fafcfb;
+  stroke: #c8d8cf;
+  stroke-width: 1.2;
+  stroke-dasharray: 3 3;
+}
+#reconstruction-demo .rr-draft .rr-value {
+  font-size: 23px;
+}
+#reconstruction-demo .rr-draft.rr-produced > rect {
+  fill: #edf7f1;
+  stroke: #96bea6;
+  stroke-dasharray: none;
+}
+#reconstruction-demo .rr-draft.rr-rejected > rect {
+  fill: #fff0e9;
+  stroke: #c18a6e;
+  stroke-dasharray: none;
+}
+#reconstruction-demo .rr-draft.rr-rejected .rr-value {
+  fill: #9d6042;
+}
+#reconstruction-demo .rr-draft.rr-discarded > rect {
+  fill: #f8fafb;
+  stroke: #c6d1d9;
+  stroke-dasharray: 3 3;
+}
+#reconstruction-demo .rr-draft.rr-discarded .rr-value {
+  fill: #627889;
+}
+#reconstruction-demo .rr-verdict {
+  font: 500 18px var(--body);
+  fill: #4f8865;
+}
+#reconstruction-demo .rr-rejected .rr-verdict {
+  fill: #ac6a48;
+}
+#reconstruction-demo .rr-discarded .rr-verdict {
+  fill: #718596;
+}
+#reconstruction-demo .rr-probability {
+  font:
+    15px Georgia,
+    serif;
+  fill: #547eaa;
+}
+#reconstruction-demo .rr-target > rect {
+  fill: #f1f6fc;
+  stroke: #9fbad7;
+  stroke-width: 1.3;
+}
+#reconstruction-demo .rr-target-title {
+  font: 600 21px var(--display);
+  fill: #4775a1;
+}
+#reconstruction-demo .rr-target-active > rect {
+  fill: #e4effb;
+  stroke: #6c96c1;
+  stroke-width: 1.8;
+}
+#reconstruction-demo #rr-commit-bg {
+  fill: #f5f8f6;
+  stroke: #dbe6df;
+  stroke-width: 1;
+}
+#reconstruction-demo .rr-committed-label {
+  font: 500 13px var(--display);
+  fill: #4d7160;
+}
+#reconstruction-demo .rr-q-circle {
+  fill: #edf7f2;
+  stroke: #8db8a0;
+  stroke-width: 1.2;
+}
+#reconstruction-demo .rr-p-circle {
+  fill: #ecf3fe;
+  stroke: #a3bde0;
+  stroke-width: 1.2;
+}
+#reconstruction-demo .rr-q-value {
+  font:
+    17px Georgia,
+    serif;
+  fill: #427a5d;
+}
+#reconstruction-demo .rr-p-value {
+  font:
+    15px Georgia,
+    serif;
+  fill: #4b70a0;
+}
+#reconstruction-demo .rr-pair-mark {
+  font: 9px var(--body);
+  fill: #819aa8;
+}
+#reconstruction-demo .rr-packet > rect {
+  fill: #f0f7f3;
+  stroke: #81ac93;
+  stroke-width: 1.5;
+}
+#reconstruction-demo .rr-packet-text {
+  font: 16px var(--display);
+  fill: #426c56;
+}
+#reconstruction-demo .rr-packet.rr-target-data > rect {
+  fill: #e6f0fe;
+  stroke: #88aace;
+}
+#reconstruction-demo .rr-packet.rr-target-data .rr-packet-text {
+  fill: #3f6c9c;
+}
+#reconstruction-demo .rr-packet.rr-replacement-data > rect {
+  fill: #fff0d6;
+  stroke: #c39854;
+}
+#reconstruction-demo .rr-packet.rr-replacement-data .rr-packet-text {
+  fill: #8a612c;
+}
+#reconstruction-demo .rr-packet.rr-error-data > rect {
+  fill: #fde6e3;
+  stroke: #b96763;
+}
+#reconstruction-demo .rr-packet.rr-error-data .rr-packet-text {
+  fill: #a44743;
+}
+#reconstruction-demo .rr-hidden-error-data .rr-packet-hidden {
+  fill: #a44743;
+}
+#reconstruction-demo .rr-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 22px 14px;
+  border-top: 1px solid #e4e9e7;
+}
+#reconstruction-demo #rr-caption {
+  font: 500 14px/1.65 var(--display);
+  color: #476270;
+}
+#reconstruction-demo .rr-buttons {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+#reconstruction-demo .rr-buttons button,
+#reconstruction-demo #rr-speed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #cadbd1;
+  border-radius: 5px;
+  min-height: 34px;
+  padding: 6px 9px;
+  background: #fff;
+  color: #407253;
+  font: 500 11px var(--body);
+}
+#reconstruction-demo #rr-speed {
+  cursor: pointer;
+  min-width: 64px;
+}
+#reconstruction-demo .rr-buttons button:hover {
+  background: #f0f8f3;
+  border-color: #96baa3;
+}
+#reconstruction-demo .rr-buttons svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#reconstruction-demo #rr-play-icon {
+  fill: currentColor;
+  stroke: none;
+}
+#reconstruction-demo .rr-timeline {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 22px 10px;
+}
+#reconstruction-demo #rr-progress {
+  --rr-progress: 0%;
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  accent-color: #407c59;
+}
+#reconstruction-demo #rr-progress::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    #4b9065 var(--rr-progress),
+    #dce8e1 var(--rr-progress)
+  );
+}
+#reconstruction-demo #rr-progress::-moz-range-track {
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    #4b9065 var(--rr-progress),
+    #dce8e1 var(--rr-progress)
+  );
+}
+#reconstruction-demo #rr-progress::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #407c59;
+  box-shadow: 0 0 0 1px #407c59;
+}
+#reconstruction-demo #rr-progress::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #407c59;
+  box-shadow: 0 0 0 1px #407c59;
+}
+#reconstruction-demo #rr-time {
+  min-width: 92px;
+  text-align: right;
+  color: #536f66;
+  font: 11px/1.5 var(--body);
+  font-variant-numeric: tabular-nums;
+}
+#reconstruction-demo #rr-figure-caption {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 12px 18px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #607686;
+}
+#reconstruction-demo #rr-figure-caption > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+#reconstruction-demo #rr-figure-caption i {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+}
+#reconstruction-demo .rr-key-prefix {
+  background: #85aace;
+}
+#reconstruction-demo .rr-key-draft {
+  background: #7bac8f;
+}
+#reconstruction-demo .rr-key-error {
+  background: #bf7770;
+}
+#reconstruction-demo #rr-figure-caption a {
+  color: #536f89;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (max-width: 700px) {
+  #reconstruction-demo.rr-figure {
+    margin-top: 25px;
+    border-radius: 9px;
+  }
+  #reconstruction-demo .rr-section-title {
+    font-size: 21px;
+  }
+  #reconstruction-demo .rr-stage-label {
+    font-size: 14px;
+  }
+  #reconstruction-demo .rr-small-label {
+    font-size: 15px;
+  }
+  #reconstruction-demo .rr-field-caption {
+    font-size: 13px;
+  }
+  #reconstruction-demo .rr-value {
+    font-size: 25px;
+  }
+  #reconstruction-demo .rr-module-title {
+    font-size: 22px;
+  }
+  #reconstruction-demo .rr-phi {
+    font-size: 30px;
+  }
+  #reconstruction-demo .rr-tile > text {
+    font-size: 19px;
+  }
+  #reconstruction-demo .rr-prefix-tile > text {
+    font-size: 15px;
+  }
+  #reconstruction-demo .rr-draft .rr-value {
+    font-size: 26px;
+  }
+  #reconstruction-demo .rr-verdict {
+    font-size: 22px;
+  }
+  #reconstruction-demo .rr-probability {
+    font-size: 18px;
+  }
+  #reconstruction-demo .rr-target-title {
+    font-size: 24px;
+  }
+  #reconstruction-demo .rr-committed-label {
+    font-size: 16px;
+  }
+  #reconstruction-demo .rr-q-value {
+    font-size: 21px;
+  }
+  #reconstruction-demo .rr-p-value {
+    font-size: 18px;
+  }
+  #reconstruction-demo .rr-pair-mark {
+    font-size: 11px;
+  }
+  #reconstruction-demo .rr-packet-text {
+    font-size: 16px;
+  }
+  #reconstruction-demo .rr-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 13px 14px;
+  }
+  #reconstruction-demo #rr-caption {
+    font-size: 12px;
+    line-height: 1.7;
+    min-height: 42px;
+  }
+  #reconstruction-demo .rr-buttons {
+    gap: 7px;
+  }
+  #reconstruction-demo #rr-play {
+    margin-right: auto;
+  }
+  #reconstruction-demo .rr-buttons button {
+    padding-inline: 7px;
+    min-height: 34px;
+    gap: 5px;
+    font-size: 10px;
+  }
+  #reconstruction-demo .rr-buttons svg {
+    width: 14px;
+    height: 14px;
+  }
+  #reconstruction-demo .rr-timeline {
+    padding: 0 14px 7px;
+    gap: 12px;
+  }
+  #reconstruction-demo #rr-time {
+    min-width: 84px;
+    font-size: 10px;
+  }
+  #reconstruction-demo #rr-figure-caption {
+    font-size: 9px;
+    padding: 12px 14px;
+    gap: 8px 14px;
+    justify-content: start;
+  }
+}
+@media print {
+  #reconstruction-demo .rr-buttons,
+  #reconstruction-demo .rr-timeline {
+    display: none;
+  }
+  #reconstruction-demo.rr-figure {
+    break-inside: avoid;
+  }
+}
+#reconstruction-demo #rr-record-bg {
+  fill: #f5f8f6;
+  stroke: #dbe6df;
+}
+#reconstruction-demo .rr-records-title {
+  font: 500 13px var(--display);
+  fill: #4d7160;
+}
+#reconstruction-demo .rr-record-name {
+  font: 400 12px var(--body);
+  fill: #62798a;
+}
+#reconstruction-demo .rr-record-cycle {
+  opacity: 0.55;
+}
+#reconstruction-demo .rr-record-cycle[data-active="true"] {
+  opacity: 1;
+}
+#reconstruction-demo .rr-record-cycle[data-active="true"] .rr-record-name {
+  font-weight: 600;
+  fill: #326d49;
+}
+#reconstruction-demo .rr-record-boundary rect {
+  fill: #eaf3ff;
+  stroke: #a8bfd9;
+  stroke-width: 1.2;
+}
+#reconstruction-demo .rr-record-boundary text {
+  font:
+    17px Georgia,
+    serif;
+  fill: #3e6e9d;
+}
+#reconstruction-demo .rr-record-draft rect {
+  fill: #fafcfd;
+  stroke: #c9d6de;
+  stroke-dasharray: 3 3;
+  stroke-width: 1.2;
+}
+#reconstruction-demo .rr-record-draft.rr-recorded rect {
+  fill: #eaf6ee;
+  stroke: #9cbfa9;
+  stroke-dasharray: none;
+}
+#reconstruction-demo .rr-record-draft.rr-record-rejected rect {
+  fill: #fff1e9;
+  stroke: #c49373;
+}
+#reconstruction-demo .rr-record-draft.rr-record-rejected .rr-value {
+  fill: #995f40;
+}
+#reconstruction-demo .rr-record-verdict {
+  font: 17px var(--body);
+  fill: #916345;
+}
+#reconstruction-demo .rr-record-source rect {
+  stroke: #467fba;
+  stroke-width: 2.4;
+}
+#reconstruction-demo .rr-prefix-restoring rect {
+  fill: #e0ecfb;
+  stroke: #467fba;
+  stroke-width: 2.2;
+}
+#reconstruction-demo .rr-logit-pair.rr-masked circle {
+  fill: #f2f4f5;
+  stroke: #c9d1d6;
+}
+#reconstruction-demo .rr-logit-pair.rr-masked text {
+  fill: #75858f;
+}
+#reconstruction-demo .rr-logit-pair.rr-masked .rr-pair-mark {
+  fill: #74828b;
+}
+#reconstruction-demo .rr-key-masked {
+  background: #95a1a8;
+}
+#reconstruction-demo .rr-matched .rr-hidden-cell {
+  stroke: #559970;
+  stroke-width: 1.8;
+}
+@media (max-width: 700px) {
+  #reconstruction-demo .rr-records-title {
+    font-size: 16px;
+  }
+  #reconstruction-demo .rr-record-name {
+    font-size: 15px;
+  }
+  #reconstruction-demo .rr-record-boundary text {
+    font-size: 18px;
+  }
+  #reconstruction-demo .rr-record-verdict {
+    font-size: 19px;
+  }
+  #reconstruction-demo #rr-tf-title {
+    font-size: 20px;
+  }
+}

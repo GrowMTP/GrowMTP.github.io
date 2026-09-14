@@ -1,0 +1,343 @@
+.modular-page .paper-abstract {
+  margin-top: 22px;
+  border-top: 1px solid #e5eae7;
+}
+.modular-page .paper-abstract > summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 0;
+  color: #435c4c;
+  font-size: 14px;
+}
+.modular-page .paper-abstract > summary::before {
+  content: "+";
+  font-size: 18px;
+  line-height: 1;
+}
+.modular-page .paper-abstract[open] > summary::before {
+  content: "−";
+}
+.modular-page .paper-abstract-content {
+  max-width: 80ch;
+  padding: 2px 0 20px;
+  color: #4d6056;
+  font-size: 15px;
+  line-height: 1.85;
+}
+.modular-page .paper-abstract + .hero-workflow {
+  margin-top: 0;
+}
+
+.modular-page #idea .idea-section {
+  padding: 30px 0;
+}
+.modular-page #idea .idea-intro {
+  position: static;
+  display: block;
+  margin-bottom: 20px;
+}
+.modular-page #idea .section-label {
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+.modular-page #idea .section-label > span {
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+}
+.modular-page #idea .idea-intro h2 {
+  font-size: clamp(23px, 2.6vw, 28px);
+  line-height: 1.25;
+  letter-spacing: -0.65px;
+  text-wrap: balance;
+}
+.modular-page #idea .section-summary {
+  max-width: 76ch;
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #586b60;
+}
+
+.modular-page #idea .idea-cost-table thead th {
+  padding: 11px 22px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.modular-page #idea .idea-cost-table tbody th,
+.modular-page #idea .idea-cost-table tbody td {
+  padding: 15px 22px;
+}
+.modular-page #idea .idea-approach {
+  font-size: 17px;
+}
+.modular-page #idea .idea-model {
+  margin-top: 3px;
+  font-size: 12px;
+}
+.modular-page #idea .idea-training-route {
+  font-size: 14px;
+  line-height: 1.65;
+}
+.modular-page #idea .idea-cost {
+  gap: 4px 10px;
+}
+.modular-page #idea .idea-cost strong {
+  font-size: 28px;
+}
+.modular-page #idea .idea-cost > span {
+  font-size: 12px;
+}
+.modular-page #idea .idea-prerequisite {
+  gap: 10px;
+  padding: 11px 18px;
+}
+.modular-page #idea .idea-prerequisite p {
+  font-size: 14px;
+}
+.modular-page #idea .idea-cost-note {
+  margin: 9px 0 0;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.modular-page #idea .idea-question-block {
+  margin-top: 18px;
+  padding: 16px 20px;
+}
+.modular-page #idea .idea-question-eyebrow {
+  font-size: 10px;
+  margin-bottom: 6px;
+}
+.modular-page #idea .idea-question-block h3 {
+  font: 600 clamp(21px, 2.4vw, 26px)/1.3 var(--display);
+  letter-spacing: -0.6px;
+  text-wrap: balance;
+}
+.modular-page #idea .idea-question-block h3 span {
+  color: var(--green);
+}
+
+.modular-page #idea .idea-observations {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.modular-page #idea .idea-observation {
+  padding: 18px 20px 0;
+  border-radius: 10px;
+}
+.modular-page #idea .idea-observation-heading {
+  gap: 10px;
+  min-height: 52px;
+}
+.modular-page #idea .idea-observation-index {
+  padding: 7px;
+  font-size: 10px;
+}
+.modular-page #idea .idea-observation h3 {
+  font-size: 20px;
+  line-height: 1.3;
+  letter-spacing: -0.4px;
+}
+.modular-page #idea .idea-domain-figure {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  max-width: 360px;
+  margin: 12px auto 0;
+}
+.modular-page #idea .idea-map-title {
+  font-size: 18px;
+}
+.modular-page #idea .idea-map-domain {
+  font-size: 16px;
+}
+.modular-page #idea .idea-map-focus {
+  font-size: 21px;
+}
+.modular-page #idea .idea-map-edge {
+  font-size: 13px;
+}
+.modular-page #idea .idea-domain-figure figcaption {
+  padding-top: 6px;
+  font-size: 12px;
+}
+.modular-page #idea .idea-signal-figure {
+  gap: 14px;
+  padding-top: 12px;
+}
+.modular-page #idea .idea-signal-heading {
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  margin-bottom: 7px;
+}
+.modular-page #idea .idea-signal-heading strong {
+  font-size: 13px;
+}
+.modular-page #idea .idea-signal-heading > span {
+  font-size: 12px;
+}
+.modular-page #idea .idea-signal-grid {
+  grid-template-columns: 48px repeat(4, minmax(0, 1fr));
+  column-gap: 8px;
+  row-gap: 5px;
+}
+.modular-page #idea .idea-row-label {
+  font-size: 12px;
+}
+.modular-page #idea .idea-draft,
+.modular-page #idea .idea-valid-signal,
+.modular-page #idea .idea-no-signal {
+  height: 30px;
+  font-size: 17px;
+  gap: 4px;
+}
+.modular-page #idea .idea-draft b,
+.modular-page #idea .idea-valid-signal b {
+  font-size: 12px;
+}
+.modular-page #idea .idea-signal-caption {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.modular-page #idea .idea-observation-takeaway {
+  margin-top: 14px;
+  padding: 12px 0;
+  font-size: 13px;
+}
+.modular-page #idea .idea-conclusion {
+  margin: 20px auto 0;
+  max-width: 720px;
+}
+.modular-page #idea .idea-ingredients {
+  gap: 24px;
+}
+.modular-page #idea .idea-ingredients > span {
+  padding: 7px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.modular-page #idea .idea-convergence {
+  height: 22px;
+}
+.modular-page #idea .idea-conclusion-title {
+  font-size: 23px;
+}
+.modular-page #idea .idea-conclusion-copy {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+@media (max-width: 820px) {
+  .modular-page #idea .idea-observations {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 640px;
+    margin-inline: auto;
+  }
+  .modular-page #idea .idea-observation-heading {
+    min-height: 0;
+  }
+  .modular-page #idea .idea-cost-table thead th,
+  .modular-page #idea .idea-cost-table tbody th,
+  .modular-page #idea .idea-cost-table tbody td {
+    padding-inline: 18px;
+  }
+}
+
+@media (max-width: 560px) {
+  .modular-page #idea .idea-section {
+    padding: 24px 0;
+  }
+  .modular-page #idea .idea-intro {
+    margin-bottom: 16px;
+  }
+  .modular-page #idea .section-summary {
+    font-size: 14px;
+  }
+  .modular-page #idea .idea-cost-table thead th {
+    padding: 10px 8px;
+    font-size: 11px;
+  }
+  .modular-page #idea .idea-cost-table tbody th,
+  .modular-page #idea .idea-cost-table tbody td {
+    padding: 13px 8px;
+  }
+  .modular-page #idea .idea-approach {
+    font-size: 15px;
+  }
+  .modular-page #idea .idea-model {
+    font-size: 12px;
+  }
+  .modular-page #idea .idea-training-route {
+    font-size: 13px;
+  }
+  .modular-page #idea .idea-cost strong {
+    font-size: clamp(22px, 5.6vw, 26px);
+  }
+  .modular-page #idea .idea-cost > span {
+    font-size: 12px;
+  }
+  .modular-page #idea .idea-prerequisite {
+    padding: 10px 12px;
+  }
+  .modular-page #idea .idea-prerequisite p {
+    font-size: 14px;
+  }
+  .modular-page #idea .idea-question-block {
+    padding: 14px 12px;
+    margin-top: 16px;
+  }
+  .modular-page #idea .idea-observations {
+    gap: 16px;
+  }
+  .modular-page #idea .idea-observation {
+    padding: 16px 16px 0;
+  }
+  .modular-page #idea .idea-observation h3 {
+    font-size: 19px;
+  }
+  .modular-page #idea .idea-signal-grid {
+    grid-template-columns: 42px repeat(4, minmax(0, 1fr));
+    column-gap: 5px;
+  }
+  .modular-page #idea .idea-draft,
+  .modular-page #idea .idea-valid-signal,
+  .modular-page #idea .idea-no-signal {
+    font-size: 17px;
+    gap: 3px;
+  }
+  .modular-page #idea .idea-observation-takeaway {
+    font-size: 13px;
+  }
+  .modular-page #idea .idea-ingredients {
+    gap: 12px;
+  }
+  .modular-page #idea .idea-ingredients > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 8px;
+    font-size: 12px;
+  }
+  .modular-page #idea .idea-conclusion-title {
+    font-size: 22px;
+  }
+  .modular-page #idea .idea-conclusion-copy {
+    font-size: 13px;
+  }
+}
+
+@media print {
+  .modular-page #idea .idea-section {
+    padding: 24px 0;
+  }
+  .modular-page #idea .idea-intro {
+    break-after: avoid;
+  }
+  .modular-page #idea .idea-question-block,
+  .modular-page #idea .idea-conclusion {
+    break-inside: avoid;
+  }
+}
